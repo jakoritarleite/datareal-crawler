@@ -1,0 +1,31 @@
+{
+  "name": "serverless-scraper",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node_modules/.bin/jest",
+    "test:coverage": "open coverage/lcov-report/index.html",
+    "eslint": "./node_modules/.bin/eslint ."
+  },
+  "jest": {
+    "collectCoverage": true
+  },
+  "devDependencies": {
+    "eslint": "^7.10.0",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-plugin-import": "^2.22.1",
+    "jest": "^26.5.2",
+    "lambda-tester": "^4.0.1",
+    "nock": "^13.0.4",
+    "serverless-offline": "^6.8.0"
+  },
+  "dependencies": {
+    "@serverless-chrome/lambda": "^1.0.0-55",
+    "aws-sdk": "^2.770.0",
+    "cheerio": "^1.0.0-rc.3",
+    "chrome-remote-interface": "^0.28.2",
+    "lodash": "^4.17.20",
+    "scrape-it": "^5.2.4",
+    "serverless-python-requirements": "^5.1.0",
+    "uuid": "^8.3.1"
+  }
+}
