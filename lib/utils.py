@@ -1,5 +1,7 @@
 import re
+import boto3
 import requests
+import tldextract
 
 def URL_validator(url): # DJango URL Validator
     regex = re.compile(
@@ -18,10 +20,16 @@ def get_html(url):
 
     return response
 
-def get_xpath_scrape(url):
-    mapping = {
-        "title": "//div[@class='conteudo']/div[contains(@class,'faixa-cinza')]/div[@class='centraliza']/h2[@class='tit-imovel']/text()",
-        "price": "//div[@class='conteudo']/div[@class='centraliza']/span[@class='valor-padrao' and not(//div[@class='conteudo']/div[@class='centraliza']/span[@class='valor-atual'])]/strong[@class='valor']/text()"
-    }
+def get_xpath(table, url):
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table(table)
+    _extractor = tldextract.TLDExtract(cache_file=False)
+    _domain = _extractor(url)
+    domain = f'{_domain.domain}.{_domain.suffix}'
 
-    return mapping
+    response = table.query(
+        IndexName='domain-index',
+        KeyConditionExpression=boto3.dynamodb.conditions.Key('domain').eq(domain)
+    )
+
+    return response['Items'][0]
