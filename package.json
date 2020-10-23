@@ -16,7 +16,8 @@
     "jest": "^26.5.2",
     "lambda-tester": "^4.0.1",
     "nock": "^13.0.4",
-    "serverless-offline": "^6.8.0"
+    "serverless-offline": "^6.8.0",
+    "serverless-step-functions": "^2.27.1"
   },
   "dependencies": {
     "@serverless-chrome/lambda": "^1.0.0-55",
@@ -25,6 +26,8 @@
     "chrome-remote-interface": "^0.28.2",
     "lodash": "^4.17.20",
     "scrape-it": "^5.2.4",
+    "serverless": "^2.8.0",
+    "serverless-pseudo-parameters": "^2.5.0",
     "serverless-python-requirements": "^5.1.0",
     "uuid": "^8.3.1"
   }
