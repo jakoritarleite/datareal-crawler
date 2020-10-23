@@ -1,0 +1,159 @@
+service: datareal-crawler
+
+frameworkVersion: ^2.8.0
+
+plugins:
+  - serverless-step-functions
+  - serverless-pseudo-parameters
+  - serverless-python-requirements
+
+provider:
+  name: aws
+  runtime: python3.8
+  stage: dev
+  environment:
+    STAGE: ${self:provider.stage}
+    REGION: ${self:provider.region}
+    CRAWLS_TABLE_NAME: ${self:custom.crawlsTableName}
+    SCRAPE_ARN: ${self:resources.Outputs.ScrapeStateMachine.Value}
+    CRAWLS_ARN: ${self:resources.Outputs.CrawlsStateMachine.Value}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+      Resource:
+        - ${self:custom.crawlsTableArn}
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:GetItem
+      Resource:
+        - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.crawlsXpathTableName}"
+        - Fn::Join:
+          - "/"
+          -
+            - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.crawlsXpathTableName}"
+            - "index/*"
+        - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.scrapeXpathTableName}"
+        - Fn::Join:
+          - "/"
+          -
+            - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.scrapeXpathTableName}"
+            - "index/*"
+    - Effect: Allow
+      Action:
+        - lambda:invokeFunction
+        - states:StartExecution
+      Resource:
+        - ${self:custom.ScrapeStateMachineArn}
+        - ${self:custom.CrawlsStateMachineArn}
+
+custom:
+  pythonRequirements:
+    dockerizePip: false
+  crawlsTableName: ${self:service}-${self:provider.stage}-crawls
+  crawlsTableArn:
+    Fn::Join:
+    - ":"
+    - - arn
+      - aws
+      - dynamodb
+      - Ref: AWS::Region
+      - Ref: AWS::AccountId
+      - table/${self:custom.crawlsTableName} 
+  crawlsXpathTableName: ${self:service}-${self:provider.stage}-crawls-config
+  scrapeXpathTableName: ${self:service}-${self:provider.stage}-scrape-config
+  ScrapeStateMachineArn:
+    Fn::GetAtt: [ScrapeStateMachine, Arn]
+  CrawlsStateMachineArn:
+    Fn::GetAtt: [CrawlsStateMachine, Arn]
+
+functions:
+  scrape:
+    handler: functions/scrape.run
+    timeout: 100
+  crawl:
+    handler: functions/crawl.run
+    timeout: 600
+  urls:
+    handler: functions/urls.run
+    timeout: 600
+    events:
+      - http:
+          path: urls/{url}
+          method: get
+          cors: true
+
+stepFunctions:
+  stateMachines:
+    scrapestatefunc:
+      name: ScrapeStateMachine
+      events:
+        - http:
+            path: scrapes
+            method: POST
+            cors: true
+      definition:
+        Comment: "A Spider to crawl building information on real estate websites"
+        StartAt: Scrape
+        States:
+          Scrape:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-scrape"
+            End: true
+    crawlsstatefunc:
+      name: CrawlsStateMachine
+      events:
+        - http:
+            path: crawls
+            method: POST
+            cors: true
+      definition:
+        Comment: "A spider to crawl buildings on real estate webistes"
+        StartAt: Crawl
+        States:
+          Crawl:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-crawl"
+            End: true
+
+resources:
+  Resources:
+    CrawlsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.crawlsTableName}
+        ProvisionedThroughput:
+          ReadCapacityUnits: 2
+          WriteCapacityUnits: 2
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: scrapeId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: scrapeId
+            KeyType: RANGE
+  Outputs:
+    CrawlsTableName:
+      Description: The name of the Crawls Dynamo table 
+      Value: ${self:custom.crawlsTableName}
+    CrawlsTableArn:
+      Description: The ARN of the Crawls Dynamo table
+      Value: ${self:custom.crawlsTableArn}
+    CrawlsXpathTableName:
+      Description: The name of the Crawl Dynamo table that contain XPaths
+      Value: ${self:custom.crawlsXpathTableName}
+    ScrapeXpathTableName:
+      Description: The name of the Scrape Dynamo table that contain XPaths
+      Value: ${self:custom.scrapeXpathTableName}
+    ScrapeStateMachine:
+      Description: The ARN of the Scrape state machine
+      Value: ${self:custom.ScrapeStateMachineArn}
+    CrawlsStateMachine:
+      Description: The ARN of the Crawl state machine
+      Value: ${self:custom.CrawlsStateMachineArn}
