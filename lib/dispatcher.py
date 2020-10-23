@@ -1,10 +1,12 @@
 import json
+import uuid
 import boto3
 
-sns = boto3.client('sns')
+sfn = boto3.client('stepfunctions')
 
 class Dispatcher(object):
     def __init__(self, topicArn):
+        self.response = []
         self.topicArn = topicArn
 
     def send_batch(self, jobs):
@@ -13,7 +15,10 @@ class Dispatcher(object):
         if not jobs:
             raise Exception('Missing jobs for Dispatcher.sendBatch')
 
-        return [ self.send(jobs[i]) for i in range(len(jobs)) ]
+        for i in range(len(jobs)):
+            self.response.append(self.send(jobs[i]))
+
+        return self.response
 
     def send(self, job):
         print('Dispatcher.send()')
@@ -21,9 +26,10 @@ class Dispatcher(object):
         if not job:
             raise Exception('Missing job for Dispatcher.send')
 
-        response = sns.publish(
-            TopicArn=self.topicArn,    
-            Message=json.dumps(job),    
+        response = sfn.start_execution(
+            stateMachineArn=self.topicArn,
+            name=str(uuid.uuid4()),
+            input=json.dumps(job)
         )
-        
+
         return response

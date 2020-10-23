@@ -14,7 +14,7 @@ def run(event, context):
     urlsId     = uuid.uuid4()
     url         = event['url']
     mapping     = get_xpath('datareal-crawler-dev-crawls-config', url)
-    dispatcher  = Dispatcher(os.environ['SNS_CRAWLS_TOPIC_ARN'])
+    dispatcher  = Dispatcher(os.environ['CRAWLS_ARN'])
 
     print(event)
 

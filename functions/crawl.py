@@ -17,7 +17,7 @@ def run(event, context):
     eventBody   =   parseEvent(event)
     url         =   eventBody['payload']['url']
     mapping     =   get_xpath('datareal-crawler-dev-crawls-config', url)
-    dispatcher  =   Dispatcher(os.environ['SNS_JOBS_TOPIC_ARN'])
+    dispatcher  =   Dispatcher(os.environ['SCRAPE_ARN'])
 
     print(event)
 
