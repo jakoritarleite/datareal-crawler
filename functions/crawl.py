@@ -1,27 +1,26 @@
-import os
-import uuid
-import json
-import boto3
+from os import environ
+from uuid import uuid4
+from json import dumps
 from parsel import Selector
-from lib.utils import get_html
-from lib.utils import get_xpath
+from lib.url import validator
+from lib.xpath import get_xpath
 from lib.event import parseEvent
 from urllib.parse import urljoin
-from lib.utils import URL_validator
 from lib.dispatcher import Dispatcher
+from lib.models.request import Request
 
 def run(event, context):
     print('crawl')
 
-    crawlId     =   uuid.uuid4()
+    crawlId     =   uuid4()
     eventBody   =   parseEvent(event)
     url         =   eventBody['payload']['url']
     mapping     =   get_xpath('datareal-crawler-dev-crawls-config', url)
-    dispatcher  =   Dispatcher(os.environ['SCRAPE_ARN'])
+    dispatcher  =   Dispatcher(environ['SCRAPE_ARN'], mapping['parser_arguments_wait'], mapping['parser_arguments_wait_time'])
 
     print(event)
 
-    api_response    = get_html(url)
+    api_response    = Request(url=url, render=mapping['parser_arguments_render']).fetch()
     
     target_urls     = find_target_urls(api_response, mapping, url)
     jobs            = build_jobs_scrape(crawlId, target_urls)
@@ -32,7 +31,7 @@ def run(event, context):
 
         response = {
             "statusCode": 200,
-            "body": json.dumps({'id': str(crawlId)})
+            "body": dumps({'id': str(crawlId)})
         }
 
         return response
@@ -42,13 +41,13 @@ def run(event, context):
 
         response = {
             "statusCode": 500,
-            "body": json.dumps({'id': str(crawlId)})
+            "body": dumps({'id': str(crawlId)})
         }
 
         return response
 
 def find_target_urls(response, xpaths, origin):
-    body = Selector(text=response.text.strip())
+    body = Selector(text=response.content.decode('utf-8'))
 
     items = body.xpath(xpaths['parser_items'])
 
@@ -62,7 +61,7 @@ def get_urls(item, xpaths, origin):
     url = item.xpath(xpaths['parser_items_url']).extract_first()
 
     if url:
-        if not URL_validator(url):
+        if not validator(url):
             url = urljoin(origin, url)
 
         return url

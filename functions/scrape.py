@@ -1,25 +1,25 @@
-import os
-import json
-import uuid
+from json import dumps
+from os import environ
+from uuid import uuid4
 from parsel import Selector
-from lib.utils import get_html
-from lib.utils import get_xpath
+from lib.xpath import get_xpath
 from lib.event import parseEvent
 from lib.models.crawls import Crawls
+from lib.models.request import Request
 
 def run(event, context):
     print('scrape')
 
-    scrapeId    =   uuid.uuid4()
+    scrapeId    =   uuid4()
     eventBody   =   parseEvent(event)
     crawlId     =   eventBody['payload']['crawlId'] if 'crawlId' in eventBody['payload'] else None
     url         =   eventBody['payload']['url']
     mapping     =   get_xpath('datareal-crawler-dev-scrape-config', url)
-    crawls      =   Crawls(os.environ['CRAWLS_TABLE_NAME'])
+    crawls      =   Crawls(environ['CRAWLS_TABLE_NAME'])
 
-    api_response = get_html(url)
+    api_response = Request(url=url, render=True).fetch()
 
-    body = Selector(text=api_response.text.strip())
+    body = Selector(text=api_response.content.decode('utf-8'))
 
     images = {}
     images['src'] = body.xpath(mapping['parser_images_src']).extract()
@@ -46,7 +46,7 @@ def run(event, context):
     response = {
         "id":           str(scrapeId),
         "statusCode":   api_response.status_code,
-        "body":         json.dumps(item)
+        "body":         dumps(item)
     }
 
     return response
