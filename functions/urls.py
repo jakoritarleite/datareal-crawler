@@ -1,24 +1,23 @@
-import os
-import re
-import uuid
-import json
-import boto3
+from os import environ
+from re import findall
+from uuid import uuid4
+from json import dumps
 from parsel import Selector
-from lib.utils import get_html
-from lib.utils import get_xpath
+from lib.xpath import get_xpath
 from lib.dispatcher import Dispatcher
+from lib.models.request import Request
 
 def run(event, context):
     print('urls')
 
-    urlsId     = uuid.uuid4()
+    urlsId      = uuid4()
     url         = event['url']
     mapping     = get_xpath('datareal-crawler-dev-crawls-config', url)
-    dispatcher  = Dispatcher(os.environ['CRAWLS_ARN'])
+    dispatcher  = Dispatcher(environ['CRAWLS_ARN'], mapping['parser_arguments_wait'], mapping['parser_arguments_wait_time'])
 
     print(event)
 
-    api_response = get_html(url)
+    api_response = Request(url=url, render=mapping['parser_arguments_render']).fetch()
     target_pages = find_target_pages(api_response, mapping, url)
     crawls_jobs  = build_jobs_crawls(target_pages)
     crawls_batches = dispatcher.send_batch(crawls_jobs)
@@ -28,7 +27,7 @@ def run(event, context):
 
         response = {
             "statusCode": 200,
-            "body": json.dumps({'id': str(urlsId)})
+            "body": dumps({'id': str(urlsId)})
         }
 
         return response
@@ -38,7 +37,7 @@ def run(event, context):
 
         response = {
             "statusCode": 500,
-            "body": json.dumps({'id': str(urlsId)})
+            "body": dumps({'id': str(urlsId)})
         }
 
         return response
@@ -47,13 +46,13 @@ def add_iter_url(url, page_str, value) -> str:
     return f'{url}{page_str}{value}'
 
 def find_target_pages(response, xpaths, url):
-    body = Selector(text=response.text.strip())
+    body = Selector(text=response.content.decode('utf-8'))
     pages = None
     _pages = []
 
     if xpaths['parser_next_page'] != "false":
         if xpaths['parser_next_page'].endswith('/text()'):
-            pages = re.findall(r'\d+', body.xpath(xpaths['parser_next_page']).extract_first())
+            pages = findall(r'\d+', body.xpath(xpaths['parser_next_page']).extract_first())
 
         else:
             pages = body.xpath(xpaths['parser_next_page']).extract()
