@@ -1,23 +1,33 @@
-import boto3
-import requests
-import tldextract
+from __future__ import annotations
 
-def get_html(url):
-    payload = {'api_key': 'c99f7077da80e3cebb9f29e288ac87e8', 'url': url, 'render': 'true'}
-    response = requests.get('http://api.scraperapi.com', params=payload)
+from boto3 import resource
+from boto3.dynamodb import conditions
 
-    return response
+from lib.url import extract_domain
 
-def get_xpath(table, url):
-    dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table(table)
-    _extractor = tldextract.TLDExtract(cache_dir=False)
-    _domain = _extractor(url)
-    domain = f'{_domain.domain}.{_domain.suffix}'
+dynamodb = resource('dynamodb')
 
-    response = table.query(
-        IndexName='domain-index',
-        KeyConditionExpression=boto3.dynamodb.conditions.Key('domain').eq(domain)
+def get_xpaths(table: str, url: str) -> Dict[str, str]:
+    """Docstring for the get_xpath function.
+
+    Query DynamoDB using the domain for the
+    XPath configuration on the given Table ``table``.
+
+    Args:
+        param1 (str) table:
+            The DynamoDB table name to get the XPath obj from
+        param2 (str) url:
+            The url that will be extracted from the domain to make the query
+
+    Returns:
+        Object containing the XPath configurations from DynamoDB
+    """
+    _table = dynamodb.Table(table)
+    domain: str = extract_domain(url)
+
+    response = _table.query(
+        IndexName = 'domain-index',
+        KeyConditionExpression = conditions.Key('domain').eq(domain)
     )
 
     return response['Items'][0]
