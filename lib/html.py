@@ -35,6 +35,9 @@ def get_from_url(url: str) -> bytes:
 
         content = response.content
 
+    else url == None:
+        raise Exception('URL Must not be None.\nNote that if the Spider crawled every page, it will return None at the end.')
+
     return content 
 
 def get_from_body(html_content: bytes) -> bytes:
