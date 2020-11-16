@@ -15,8 +15,13 @@ provider:
     STAGE: ${self:provider.stage}
     REGION: ${self:provider.region}
     CRAWLS_TABLE_NAME: ${self:custom.crawlsTableName}
-    SCRAPE_ARN: ${self:resources.Outputs.ScrapeStateMachine.Value}
     CRAWLS_ARN: ${self:resources.Outputs.CrawlsStateMachine.Value}
+    DISPATCHER_ARN: ${self:resources.Outputs.DispatcherStateMachine.Value}
+    VERIFIER_ARN: ${self:resources.Outputs.VerifierStateMachine.Value}
+    SCRAPE_ARN: ${self:resources.Outputs.ScrapeStateMachine.Value}
+    FINISHER_ARN: ${self:resources.Outputs.FinisherStateMachine.Value}
+    API_KEY: "c99f7077da80e3cebb9f29e288ac87e8"
+    API_URL: "http://api.scraperapi.com/"
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -47,8 +52,11 @@ provider:
         - lambda:invokeFunction
         - states:StartExecution
       Resource:
-        - ${self:custom.ScrapeStateMachineArn}
         - ${self:custom.CrawlsStateMachineArn}
+        - ${self:custom.DispatcherStateMachineArn}
+        - ${self:custom.VerifierStateMachineArn}
+        - ${self:custom.ScrapeStateMachineArn}
+        - ${self:custom.FinisherStateMachineArn}
 
 custom:
   pythonRequirements:
@@ -65,29 +73,70 @@ custom:
       - table/${self:custom.crawlsTableName} 
   crawlsXpathTableName: ${self:service}-${self:provider.stage}-crawls-config
   scrapeXpathTableName: ${self:service}-${self:provider.stage}-scrape-config
-  ScrapeStateMachineArn:
-    Fn::GetAtt: [ScrapeStateMachine, Arn]
   CrawlsStateMachineArn:
     Fn::GetAtt: [CrawlsStateMachine, Arn]
+  DispatcherStateMachineArn:
+    Fn::GetAtt: [DispatcherStateMachine, Arn]
+  VerifierStateMachineArn:
+    Fn::GetAtt: [VerifierStateMachine, Arn]
+  ScrapeStateMachineArn:
+    Fn::GetAtt: [ScrapeStateMachine, Arn]
+  FinisherStateMachineArn:
+    Fn::GetAtt: [FinisherStateMachine, Arn]
 
 functions:
-  scrape:
-    handler: functions/scrape.run
-    timeout: 100
   crawl:
     handler: functions/crawl.run
     timeout: 600
-  urls:
-    handler: functions/urls.run
-    timeout: 600
-    events:
-      - http:
-          path: urls/{url}
-          method: get
-          cors: true
+  dispatcher:
+    handler: functions/dispatcher.run
+    timeout: 100
+  verifier:
+    handler: functions/verifier.run 
+    timeout: 100
+  scrape:
+    handler: functions/scrape.run
+    timeout: 100
+  finisher:
+    handler: functions/finisher.run
 
 stepFunctions:
   stateMachines:
+    crawlsstatefunc:
+      name: CrawlsStateMachine
+      events:
+        - http:
+            path: crawls
+            method: POST
+            cors: true
+      definition:
+        Comment: "A spider to crawl buildings on real estate webistes"
+        StartAt: Crawl
+        States:
+          Crawl:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-crawl"
+            End: true
+    dispatcherstatefunc:
+      name: DispatcherStateMachine
+      definition:
+        Comment: "A State Machine to create Crawls job and Scrape jobs"
+        StartAt: Dispatcher
+        States:
+          Dispatcher:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-dispatcher"
+            End: true
+    verifierstatefunc:
+      name: VerifierStateMachine
+      definition:
+        Comment: "A State Machine to verify if HTML body exists on S3"
+        StartAt: Verifier
+        States:
+          Verifier:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-verifier"
+            End: true
     scrapestatefunc:
       name: ScrapeStateMachine
       events:
@@ -103,20 +152,15 @@ stepFunctions:
             Type: Task
             Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-scrape"
             End: true
-    crawlsstatefunc:
-      name: CrawlsStateMachine
-      events:
-        - http:
-            path: crawls
-            method: POST
-            cors: true
+    finisherstatefunc:
+      name: FinisherStateMachine
       definition:
-        Comment: "A spider to crawl buildings on real estate webistes"
-        StartAt: Crawl
+        Comment: "A State Machine to save HTML body to S3 and content to DynamoDB"
+        StartAt: Finisher
         States:
-          Crawl:
+          Finisher:
             Type: Task
-            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-crawl"
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-finisher"
             End: true
 
 resources:
@@ -151,9 +195,18 @@ resources:
     ScrapeXpathTableName:
       Description: The name of the Scrape Dynamo table that contain XPaths
       Value: ${self:custom.scrapeXpathTableName}
-    ScrapeStateMachine:
-      Description: The ARN of the Scrape state machine
-      Value: ${self:custom.ScrapeStateMachineArn}
     CrawlsStateMachine:
       Description: The ARN of the Crawl state machine
       Value: ${self:custom.CrawlsStateMachineArn}
+    DispatcherStateMachine:
+      Description: The ARN of the Dispatcher state machine
+      Value: ${self:custom.DispatcherStateMachineArn}
+    VerifierStateMachine:
+      Description: The ARN of the Verifier state machine
+      Value: ${self:custom.VerifierStateMachineArn}
+    ScrapeStateMachine:
+      Description: The ARN of the Scrape state machine
+      Value: ${self:custom.ScrapeStateMachineArn}
+    FinisherStateMachine:
+      Description: The ARN of the Finisher state machine
+      Value: ${self:custom.FinisherStateMachineArn}
