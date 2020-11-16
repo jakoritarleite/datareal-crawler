@@ -1,52 +1,116 @@
-from json import dumps
+from __future__ import annotations
+
 from os import environ
 from uuid import uuid4
-from parsel import Selector
-from lib.xpath import get_xpath
-from lib.event import parseEvent
-from lib.models.crawls import Crawls
-from lib.models.request import Request
 
-def run(event, context):
-    print('scrape')
+from lib.models.crawl import Crawl
+from lib.models.dispatcher import Dispatcher
 
-    scrapeId    =   uuid4()
-    eventBody   =   parseEvent(event)
-    crawlId     =   eventBody['payload']['crawlId'] if 'crawlId' in eventBody['payload'] else None
-    url         =   eventBody['payload']['url']
-    mapping     =   get_xpath('datareal-crawler-dev-scrape-config', url)
-    crawls      =   Crawls(environ['CRAWLS_TABLE_NAME'])
+from lib.models.database import S3Utils
+from lib.models.database import DynamoUtils
 
-    api_response = Request(url=url, render=True).fetch()
+from lib.xpath import get_xpaths
+from lib.html import get_from_url
+from lib.html import get_from_body
 
-    body = Selector(text=api_response.content.decode('utf-8'))
+def run(event, context) -> Dict[str, int]:
+    """Docstring for the run function.
 
-    images = {}
-    images['src'] = body.xpath(mapping['parser_images_src']).extract()
-    images['alt'] = body.xpath(mapping['parser_images_alt']).extract()
+    Receives a dict from the Dispatcher State Machine
+    with the executionId (crawlId) and the url or the
+    html body from s3 to be scraped.
 
-    item = {
-        'id':       str(crawlId) if crawlId else str(scrapeId),
-        'scrapeId': str(scrapeId),
-        'url':      url,
-        'title':    body.xpath(mapping['parser_title']).extract_first(),
-        'category': body.xpath(mapping['parser_category']).extract_first(),
-        'price':    body.xpath(mapping['parser_price']).extract_first(),
-        'rooms':    body.xpath(mapping['parser_rooms']).extract_first(),
-        'suites':   body.xpath(mapping['parser_suites']).extract_first(),
-        'garages':  body.xpath(mapping['parser_garages']).extract_first(),
-        'location': body.xpath(mapping['parser_location']).extract_first(),
-        'features': body.xpath(mapping['parser_features']).extract_first(),
-        'body':     body.xpath(mapping['parser_body']).extract_first(),
-        'images':   [ { 'src': images['src'][i], 'alt': images['alt'][i] } for i in range(len(images['src'])) ]
-    }
+    Note:
+        The executionId and url/domain will always be present
+        but content may not be in the object.
+    
+    Args:
+        param1 (obj) event:
+            The object:dict with executionId, url and maybe content
+        param2 (obj) context:
+            The object:dict with the AWS::Lambda::State configurations
+    
+    Examples:
+        The param1 should look like this:
+            {
+                'executionId': HASH,
+                'url': 'https://www.example.com',
+                'url': 's3://datareal-crawler-bodies/{md5(domain)}}/{md5(path)}.body',
+                'content': '<html>...'
+                'saveS3': 'true/false'
+            }
 
-    crawls.save(item)
+    Returns:
+        Object with status code 200 if everything went ok
+        and if something goes wrong it returns another statue code
+    """
+    execution_id = event['executionId']
+    save_s3 = event['saveS3']
+    response: Dict[str, str] = {'id': execution_id}
+    result: Dict[str, str] = {'id': execution_id, 'scrapeId': str(uuid4())}
+    html: bytes
+    parser: ClassVar[T]
+    use_head: bool = False
 
-    response = {
-        "id":           str(scrapeId),
-        "statusCode":   api_response.status_code,
-        "body":         dumps(item)
-    }
+    dispatcher: ClassVar[Dispatcher] = Dispatcher(
+        machine_arn=environ['FINISHER_ARN'],
+        execution_id=execution_id
+    )
+
+    if 'content' in event:
+        html = get_from_body(event['content'])
+
+    else:
+        html = get_from_url(event['url'])
+
+    if 'olx' in event['url']:
+        use_head = True
+
+    xpaths: dict[str, str] = get_xpaths(
+        table=environ['SCRAPE_XPATH'],
+        url=event['url']
+    )
+
+    parser = Crawl(
+        mapping=xpaths,
+        use_scrape=True,
+        use_head=use_head,
+    )
+
+    content: Dict[str, str] = parser.get_content(content=html, url=event['url'])
+    
+    result.update(content)
+
+    s3_bucket: str = None
+    s3_path: str = None
+    s3_file: str = None
+
+    if save_s3.lower() == 'true':
+        s3_bucket = 'datareal-crawler-bodies'
+
+        s3_object = S3Utils.get_filename_from_url(url=event['url'])
+
+        s3_folder = s3_object['folder']
+        s3_file = s3_object['file']
+
+        s3_path = f'{s3_folder}/{s3_file}'
+
+
+    jobs = dispatcher.build_finisher(execution_id=execution_id, item=result, table=environ['CRAWLS_TABLE_NAME'], bucket=s3_bucket, filename=s3_path, file_content=html)
+    
+    sent = dispatcher.send_batch(jobs)
+
+    if sent:
+        response.update({
+            'status_code': 200,
+            'state_machine_arn': environ['FINISHER_ARN']
+        })
+
+    else:
+        response.update({
+            'status_code': 500
+        })
+
+    print(f'next_machine_response:\n{sent}')
 
     return response
