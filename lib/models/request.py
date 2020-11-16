@@ -27,16 +27,26 @@ class Request(object):
             raise ValueError(f'Missing scheme in request url: {self._url}')
 
     def _set_session(self):
-        request = _Request(
-            method=self.method,
-            url=self.api_url if bool(self.render) else self._url,
-            headers=self.headers,
-            params={
-                'api_key': self.api_key,
-                'render': self.render,
-                'url': self._url
-            } if bool(self.render) else None
-        )
+        request: ClassVar
+
+        if self.render.lower() == 'true':
+            request = _Request(
+                method=self.method,
+                url=self.api_url,
+                headers=self.headers,
+                params={
+                    'api_key': self.api_key,
+                    'render': str(self.render).lower(),
+                    'url': self._url
+                }
+            )
+
+        else:
+            request = _Request(
+                method=self.method,
+                url=self._url,
+                headers=self.headers
+            )
 
         self._request = request.prepare()
         self._session = Session()
@@ -48,4 +58,21 @@ class Request(object):
             return response
 
         else:
-            raise Exception(f'Got the following Error status code: {response.status_code}')
+            # This code block above is a handler for when the server returns us a 403 status code
+            # It's just a quick fix to make the PoC fully functional and start running that shit
+
+            if int(response.status_code) == 403:
+                print('Blocked by server, trying to use Proxy')
+                self.render = 'true'
+                self._set_session()
+
+                response = self._session.send(self._request)
+
+                if response.ok:
+                    return response
+
+                print('Looking up on server response')
+                print(response)
+
+            else:
+                raise Exception(f'Got the following Error status code: {response.status_code}')
