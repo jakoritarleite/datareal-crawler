@@ -17,7 +17,8 @@ class Crawl:
             mapping={'parser...':...},
             encoding='ASCII',
             use_scrape=True,
-            use_head=False
+            use_head=False,
+            check_price=False
         )
         result = crawl.get_content()
     """
@@ -26,7 +27,8 @@ class Crawl:
         mapping: dict[str, str],
         encoding: str = 'UTF-8',
         use_scrape: bool = False,
-        use_head: bool = False
+        use_head: bool = False,
+        check_price: bool = False
     ) -> None:
         """Docstring for the __init__ method.
         Args:
@@ -38,6 +40,9 @@ class Crawl:
                 If the target crawling is the Scrape State Machine or not
             param4 (bool) use_head: (default False)
                 If you want to crawl information from <header> (olx specific)
+            param5 (bool) check_price: (default False)
+                If you have already crawled this url before and have it saved on S3,
+                you can compare the price difference and get the difference curve for weeks and months
         """
         assert isinstance(encoding, str), \
             'The encoding param must be String'
@@ -47,6 +52,7 @@ class Crawl:
 
         self.encoding = encoding
         self.mapping = mapping
+        self.check_price = check_price
 
         if use_scrape:
             assert isinstance(use_scrape, bool), \
@@ -69,7 +75,7 @@ class Crawl:
         Returns:
             Function for Scrape State Machine
         """
-        self.crawler = _Scrape(mapping=self.mapping)
+        self.crawler = _Scrape(mapping=self.mapping, check_price=self.check_price)
 
     def _set_crawl(self) -> ClassVar[crawl]:
         """Docstring for the _set_crawl property.
@@ -116,14 +122,17 @@ class _Scrape:
     using XPath config. This Class is made specific
     for the Scrape State Machine.
     """
-    def __init__(self, mapping: Dict[XPath]) -> None:
+    def __init__(self, mapping: Dict[XPath], check_price: bool) -> None:
         """Docstring for the __init__ method.
         Args:
             param1 (dict) mapping:
                 The XPaths in a object
+            param1 (bool) check_price:
+                If you want to check price variation or not
         """
         self.mapping = mapping
-    
+        self.check_price = check_price
+
     def _get(self, content: str, url: str) -> dict:
         """Docstring for the _scrape function.
 
@@ -164,8 +173,6 @@ class _Scrape:
             for i in range(len(images_src))
         ]
         url: str = url
-
-        print(f'Price: {price}')
 
         for variable in items:
             item[variable] = eval(variable)
@@ -215,7 +222,7 @@ class _Crawl:
             
             if item_url:
                 if not validator(item_url):
-                    item_url = urljoin(self.origin, item_url)
+                    item_url = urljoin(url, item_url)
 
                 items.append(item_url)
 
@@ -268,8 +275,11 @@ class _Head:
         body: str = head_json['body']
         title: str = parser.xpath(self.mapping['parser_title']).extract_first()
         location: Dict[str, str] = head_json['location']
-
         price: str = None
+        
+        if 'priceValue' in head_json:
+            price = head_json['priceValue']
+
         rooms: str = None
         garages: str = None
         bathrooms: str = None
@@ -277,8 +287,8 @@ class _Head:
         features: list = list()
 
         for _property in head_json['properties']:
-            if _property['name'] == 'price':
-                price = _property['value']  
+            if _property['name'] == 'price' and not price:
+                price = _property['value']
 
             elif _property['name'] == 'rooms':
                 rooms = _property['value']
