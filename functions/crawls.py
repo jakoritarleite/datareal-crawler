@@ -25,8 +25,7 @@ def run(event, context) -> Dict[str, str]:
     Examples:
         The param1 should look like this:
             {
-                'url': 'https://www.example.com',
-                'saveS3: 'true/false' (optional)
+                'url': 'https://www.example.com'
             }
 
     Returns:
@@ -35,21 +34,10 @@ def run(event, context) -> Dict[str, str]:
     """
     execution_id: str = str(uuid4())
     url: str = event['url']
-    save_s3: bool
     response: Dict[str, str] = {'id': execution_id}
     result: Dict[str, str] = {'id': execution_id}
     html: bytes = get_from_url(event['url'])
     parser: ClassVar[T]
-
-    if 'saveS3' in event:
-        if event['saveS3'].lower() == 'true':
-            response.update({'saveS3': event['saveS3']})
-
-        elif event['saveS3'].lower() == 'false':
-            response.update({'saveS3': event['saveS3']})
-
-        else:
-            raise Exception('The saveS3 key must be True or False, anything other than that will raise a Error.')
  
     xpaths: dict[str, str] = get_xpaths(
         table=environ['CRAWLS_XPATH'],
