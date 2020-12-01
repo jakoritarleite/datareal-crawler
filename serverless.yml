@@ -1,6 +1,6 @@
 service: datareal-crawler
 
-frameworkVersion: ^2.8.0
+frameworkVersion: ^2.14.0
 
 plugins:
   - serverless-step-functions
@@ -15,6 +15,8 @@ provider:
     STAGE: ${self:provider.stage}
     REGION: ${self:provider.region}
     CRAWLS_TABLE_NAME: ${self:custom.crawlsTableName}
+    CRAWLS_XPATH: ${self:custom.crawlsXpathTableName}
+    SCRAPE_XPATH: ${self:custom.scrapeXpathTableName}
     CRAWLS_ARN: ${self:resources.Outputs.CrawlsStateMachine.Value}
     DISPATCHER_ARN: ${self:resources.Outputs.DispatcherStateMachine.Value}
     VERIFIER_ARN: ${self:resources.Outputs.VerifierStateMachine.Value}
@@ -32,6 +34,12 @@ provider:
         - ${self:custom.crawlsTableArn}
     - Effect: Allow
       Action:
+        - s3:*
+      Resource:
+        - "arn:aws:s3:::datareal-crawler-bodies/*"
+        - "arn:aws:s3:::datareal-crawler-bodies"
+    - Effect: Allow
+      Action:
         - dynamodb:Query
         - dynamodb:GetItem
       Resource:
@@ -46,6 +54,12 @@ provider:
           - "/"
           -
             - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.scrapeXpathTableName}"
+            - "index/*"
+        - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/datareal-price-variation"
+        - Fn::Join:
+          - "/"
+          -
+            - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/datareal-price-variation"
             - "index/*"
     - Effect: Allow
       Action:
@@ -86,7 +100,7 @@ custom:
 
 functions:
   crawl:
-    handler: functions/crawl.run
+    handler: functions/crawls.run
     timeout: 600
   dispatcher:
     handler: functions/dispatcher.run
