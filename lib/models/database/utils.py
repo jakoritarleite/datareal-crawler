@@ -16,6 +16,7 @@ from io import BytesIO
 from base64 import b64encode
 from io import open as openIO
 from botocore import exceptions
+from boto3.dynamodb import conditions
 from lib.url import extract_domain, extract_path
 
 class S3Utils:
@@ -79,10 +80,10 @@ class S3Utils:
         response: bool
         
         try:
-            self.s3.Object(self.s3_bucket, f'{self.s3_path}/{self.s3_filename}').load()
+            obj = self.s3.Object(bucket_name=self.s3_bucket, key=f'{self.s3_path}/{self.s3_filename}').get()
 
         except exceptions.ClientError as error:
-            if error.response['Error']['Code'] in ["403", "404"]:
+            if error.response['Error']['Code'] == 'NoSuchKey':
                 response = False
 
             else:
@@ -94,5 +95,26 @@ class S3Utils:
         return response
 
 class DynamoUtils:
-    def __init__(self):
-        pass
+    def __init__(self, dynamo_table: str):
+        self.dynamo_table = dynamo_table
+
+        assert isinstance(self.dynamo_table, str), \
+            'DynamoDB Table must be String'
+
+        self.dynamo = boto3.resource('dynamodb')
+        self.table = self.dynamo.Table(self.dynamo_table)
+
+    def get(self, query: dict) -> dict:
+        try:
+            response = self.table.query(
+                IndexName=query['index'],
+                KeyConditionExpression=conditions.Key(query['key']).eq(query['value'])
+            )
+
+        except exceptions.ClientError as error:
+            print(error.response['Error']['Message'])
+
+        else:
+            for item in response['Items']:
+                if item['last_check'] == 'true':
+                    return item
