@@ -7,7 +7,6 @@ from lib.models.crawl import Crawl
 from lib.models.dispatcher import Dispatcher
 
 from lib.models.database import S3Utils
-from lib.models.database import DynamoUtils
 
 from lib.xpath import get_xpaths
 from lib.html import get_from_url
@@ -52,7 +51,6 @@ def run(event, context) -> Dict[str, int]:
     html: bytes
     parser: ClassVar[T]
     use_head: bool = False
-    check_price: ClassVar[DynamoUtils] = None
     do_render: bool = False
 
     if 'render' in event and event['render'].lower() == 'true':
