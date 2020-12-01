@@ -45,12 +45,18 @@ def run(event, context) -> Dict[str, int]:
         and if something goes wrong it returns another statue code
     """
     execution_id = event['executionId']
+    scrape_id = str(uuid4())
     save_s3 = event['saveS3']
-    response: Dict[str, str] = {'id': execution_id}
-    result: Dict[str, str] = {'id': execution_id, 'scrapeId': str(uuid4())}
+    response: Dict[str, str] = {'id': execution_id, 'scrapeId': scrape_id}
+    result: Dict[str, str] = {'id': execution_id, 'scrapeId': scrape_id}
     html: bytes
     parser: ClassVar[T]
     use_head: bool = False
+    check_price: ClassVar[DynamoUtils] = None
+    do_render: bool = False
+
+    if 'render' in event and event['render'].lower() == 'true':
+        do_render = True
 
     dispatcher: ClassVar[Dispatcher] = Dispatcher(
         machine_arn=environ['FINISHER_ARN'],
@@ -61,7 +67,7 @@ def run(event, context) -> Dict[str, int]:
         html = get_from_body(event['content'])
 
     else:
-        html = get_from_url(event['url'])
+        html = get_from_url(event['url'], do_render)
 
     if 'olx' in event['url']:
         use_head = True
@@ -74,11 +80,14 @@ def run(event, context) -> Dict[str, int]:
     parser = Crawl(
         mapping=xpaths,
         use_scrape=True,
-        use_head=use_head,
+        use_head=use_head
     )
 
     content: Dict[str, str] = parser.get_content(content=html, url=event['url'])
-    
+
+    print('Returned content:',
+        content)
+
     result.update(content)
 
     s3_bucket: str = None
@@ -97,7 +106,7 @@ def run(event, context) -> Dict[str, int]:
 
 
     jobs = dispatcher.build_finisher(execution_id=execution_id, item=result, table=environ['CRAWLS_TABLE_NAME'], bucket=s3_bucket, filename=s3_path, file_content=html)
-    
+
     sent = dispatcher.send_batch(jobs)
 
     if sent:
