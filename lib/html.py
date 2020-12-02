@@ -13,7 +13,7 @@ def get_from_url(url: str, do_render: bool = False) -> bytes:
     if 's3' in url:
         parsed_url = urlparse(url)
         parsed_path = split(parsed_url.path)
-        
+
         bucket = parsed_url.netloc
         path = parsed_path[0]
         filename = parsed_path[1]
@@ -43,7 +43,7 @@ def get_from_url(url: str, do_render: bool = False) -> bytes:
 
 def get_from_body(html_content: bytes) -> bytes:
     content: bytes
-    
+
     try:
         content = BytesIO()
         content.write(html_content.encode())

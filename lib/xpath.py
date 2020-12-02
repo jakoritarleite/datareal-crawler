@@ -26,8 +26,8 @@ def get_xpaths(table: str, url: str) -> Dict[str, str]:
     domain: str = extract_domain(url)
 
     response = _table.query(
-        IndexName = 'domain-index',
-        KeyConditionExpression = conditions.Key('domain').eq(domain)
+        IndexName='domain-index',
+        KeyConditionExpression=conditions.Key('domain').eq(domain)
     )
 
     return response['Items'][0]
