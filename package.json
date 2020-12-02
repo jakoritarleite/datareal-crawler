@@ -2,7 +2,8 @@
   "name": "serverless-scraper",
   "version": "1.0.0",
   "scripts": {
-    "deploy": "serverless deploy"
+    "deploy": "serverless deploy",
+    "dfunction": "serverless deploy function -f"
   },
   "devDependencies": {
     "serverless-step-functions": "^2.27.1"
