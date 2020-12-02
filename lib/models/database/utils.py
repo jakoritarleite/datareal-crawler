@@ -118,3 +118,26 @@ class DynamoUtils:
             for item in response['Items']:
                 if item['last_check'] == 'true':
                     return item
+
+    def update(self, query: dict) -> dict:
+        try:
+            response = self.table.update_item(
+                Key={
+                    query['partition_key']: query[query['partition_key']],
+                    query['sort_key']: query[query['sort_key']]
+                },
+                UpdateExpression=f"set {query['target']}=:r",
+                ExpressionAttributeValues={
+                    ':r': query['value']
+                },
+                ReturnValues="UPDATED_NEW"
+            )
+
+            return response
+
+        except Exception as error:
+            print('Error when updating item:', error)
+            exit(1)
+        
+    def put(self, item: dict) -> None:
+        self.table.put_item(Item=item)
