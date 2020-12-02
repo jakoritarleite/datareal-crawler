@@ -57,7 +57,7 @@ def run(event, context) -> Dict[str, int]:
         do_render = True
 
     dispatcher: ClassVar[Dispatcher] = Dispatcher(
-        machine_arn=environ['FINISHER_ARN'],
+        machine_arn=environ['PRICE_VERIFIER_ARN'],
         execution_id=execution_id
     )
 
