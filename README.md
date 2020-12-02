@@ -1,57 +1,25 @@
-# Serverless Scraper
+<div align="center">
+    <h1>DataReal Crawler</h1>
 
-## Setup
-
-### Prerequisites
-
-- Node.js & NPM
-- Yarn
-- [The Serverless Framework](https://serverless.com/framework/)
-
-### Install dependencies
-
-```
-yarn
-```
-
-### Running Tests
-
-```
-yarn test
-```
-
-### Get Test coverage
-
-```
-yarn test:coverage
-```
-
-### Lint
-
-```
-yarn eslint
-```
-
-### Running locally
-
-```
-serverless offline start
-```
-
-### Deploy
-
-```
-serverless deploy
-```
+[![Open Issues](https://img.shields.io/github/issues/jakoritarleite/datareal-poc.svg)](https://github.com/jakoritarleite/datareal-poc/issues)
+[![Closed Issues](https://img.shields.io/github/issues-closed/jakoritarleite/datareal-poc.svg)](https://github.com/jakoritarleite/datareal-poc/issues?q=is%3Aissue+is%3Aclosed)
+[![Commit Activity](https://img.shields.io/github/commit-activity/m/jakoritarleite/datareal-poc.svg)](https://github.com/jakoritarleite/datareal-poc/pulse)
 
 
-## Thanks
+<h2>An automated and powerful real estate crawler.</h2>
 
-**serverless-scraper** © 2017+, Yos Riady. Released under the [MIT] License.<br>
-Authored and maintained by Yos Riady with help from contributors ([list][contributors]).
+</div>
 
-> [yos.io](http://yos.io) &nbsp;&middot;&nbsp;
-> GitHub [@yosriady](https://github.com/yosriady)
+## Built With
 
-[MIT]: http://mit-license.org/
-[contributors]: http://github.com/yosriady/serverless-scraper/contributors
+* [Node.js](https://nodejs.org/en/) - The JavaScript runtime
+* [npm](https://www.npmjs.com/) - The package manager
+* [VSCode](https://code.visualstudio.com/) - Used to code
+* [AWS](https://aws.amazon.com/) - Amazon Web Services
+* [Serverless](https://www.serverless.com/) - The Serverless Framework
+
+## Authors
+
+* **João Koritar**
+
+See also the list of [contributors](https://github.com/jakoritarleite/datareal-poc/contributors) who participated in this project.
