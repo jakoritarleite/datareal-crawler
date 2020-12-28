@@ -38,8 +38,19 @@ def run(event, context) -> Dict[str, str]:
     current_date: Date = datetime.now()
     content: Dict[str, str] = loads(b64decode(event['dynamo']['content'].encode()).decode())
     price_verifier: ClassVar = DynamoUtils(environ['PRICE_VARIATION'])
+    check: Dict[str, str] = None
 
-    check = price_verifier.get({'index': 'url-index', 'key': 'url', 'value': content['url']})
+    check_objects = price_verifier.get(
+        {
+            'index': 'url-index', 
+            'key': 'url', 
+            'value': content['url']
+        }
+    )
+
+    for item in check_objects:
+        if item['last_check'] == 'true':
+            check = item
 
     if check:
         print(f"The following URL already exists on the Database: [{content['url']}]")
