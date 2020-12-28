@@ -6,6 +6,7 @@
     The dict may look like this:
     -  {
         'executionId': HASH,
+        'action': 'UPDATE/PUT'
         'dynamo': {
             'table': ...,
             ...
@@ -49,7 +50,11 @@ def run(event, context):
     )
 
     try:
-        database.save()
+        if event['action'] == 'PUT':
+            database.save()
+
+        elif event['action'] == 'UPDATE':
+            database.update()
 
         # If everythings wen't okay it will return a 200 status code
         response['status_code'] = 200

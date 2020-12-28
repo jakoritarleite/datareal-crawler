@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from os import environ
-from base64 import b64decode
 
 from lib.models.database import S3Utils
+from lib.models.database import DynamoUtils
 from lib.models.dispatcher import Dispatcher
 
-def run(event, context) -> Dict[str, int]:
+def run(event, context) -> Dict[str, str]:
     """Docstring for the run function.
 
     Receives a dict from the Dispatcher State Machine
@@ -26,7 +26,9 @@ def run(event, context) -> Dict[str, int]:
         The param1 should look this this:
             {
                 'executionId': HASH,
-                'urls': ['http...',...]
+                'urls': ['http...',...],
+                'useS3Content': true/false (optional),
+                'render': 'true/false' (optional)
             }
 
     Returns:
@@ -35,46 +37,77 @@ def run(event, context) -> Dict[str, int]:
     """
     execution_id = event['executionId']
     response: Dict[str, str] = {'id': execution_id}
-    s3_objects = List = list()
+    use_s3: bool = False
     jobs: List = list()
+    s3_objects = List = list()
+    dynamo_objects = List = list()
+    jobs: List = list()
+    do_render: bool = False
+
+    if 'render' in event and event['render'].lower() == 'true':
+        do_render = True
 
     dispatcher: ClassVar[Dispatcher] = Dispatcher(
         machine_arn=environ['SCRAPE_ARN'],
         execution_id=execution_id
     )
 
-    for url in event['urls']:
-        s3_object = S3Utils.get_filename_from_url(url)
-        print(s3_object)
+    if 'useS3Content' in event and event['useS3Content'].lower() == 'true':
+        use_s3 = True
 
-        s3_objects.append({
-            'url': url,
-            's3': S3Utils(
+    for url in event['urls']:
+        job: Dict[str, str] = dict({'url': url, 'saveS3': 'true', 'render': str(do_render).lower()})
+
+        if use_s3:
+            s3_object = S3Utils.get_filename_from_url(url)
+            s3_func = S3Utils(
                 s3_bucket='datareal-crawler-bodies',
                 s3_path=s3_object['folder'],
                 s3_filename=s3_object['file']
             )
-        })
 
-    for s3_object in s3_objects:
-        job: dict = dict()
-        content: bytes
+            if s3_func.verify():
+                job.update(
+                    {
+                        'content': s3_func.download()
+                    }
+                )
 
-        if s3_object['s3'].verify():
-            content = s3_object['s3'].download()
-            job = {
-                'executionId': execution_id,
-                'url': s3_object['url'],
-                'content': content,
-                'saveS3': 'false'
+"""This commented code block is for when you want to update the existent items on Db with the new ones    
+        if dynamo_object := DynamoUtils(environ['CRAWLS_TABLE_NAME']).get(
+            {
+                'index': 'url-index',
+                'key': 'url',
+                'value': url
             }
+        ):
+            print('The URL is already on Dynamo Table')
+
+            if len(dynamo_object) > 1:
+                for obj in dynamo_object[1:]:
+                    print('Deleting duplicated URLs')
+                    DynamoUtils(environ['CRAWLS_TABLE_NAME']).delete(
+                        {
+                            'partition_key': 'id',
+                            'sort_key': 'scrapeId',
+                            'id': obj['id'],
+                            'scrapeId': obj['scrapeId']
+                        }
+                    )
+
+            job.update({
+                'executionId': dynamo_object[0]['id'],
+                'scrapeId': dynamo_object[0]['scrapeId'],
+                'action': 'UPDATE'
+            })
+
         else:
-            job = {
-                'executionId': execution_id,
-                'url': s3_object['url'],
-                'saveS3': 'true'
-            }
-
+            print('The URL do not exists on Dynamo Table') """
+        job.update({
+            'executionId': execution_id,
+            'scrapeId': None,
+            'action': 'PUT'
+        })
         jobs.append(job)
 
     sent = dispatcher.send_batch(jobs)
@@ -82,17 +115,17 @@ def run(event, context) -> Dict[str, int]:
     if sent:
         response.update({
             'status_code': 200,
-            'state_machine_arn': environ['SCRAPE_ARN']
+            'status_machine_arn': environ['SCRAPE_ARN']
         })
 
     else:
         response.update({
             'status_code': 500
         })
-    
+
     print(
         'next_machine_response:\n',
         sent
-        )
+    )
 
     return response
