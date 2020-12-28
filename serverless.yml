@@ -46,18 +46,28 @@ provider:
         - dynamodb:Query
         - dynamodb:GetItem
       Resource:
+        # datareal-crawler-dev-crawls table-index
+        - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.crawlsTableName}"
+        - Fn::Join:
+          - "/"
+          -
+            - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.crawlsTableName}"
+            - "index/*"
+        # datareal-crawler-dev-crawls-config table-index
         - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.crawlsXpathTableName}"
         - Fn::Join:
           - "/"
           -
             - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.crawlsXpathTableName}"
             - "index/*"
+        # datareal-crawler-dev-scrape-config table-index
         - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.scrapeXpathTableName}"
         - Fn::Join:
           - "/"
           -
             - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.scrapeXpathTableName}"
             - "index/*"
+        # datareal-price-variation table-index
         - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/datareal-price-variation"
         - Fn::Join:
           - "/"
