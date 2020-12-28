@@ -24,7 +24,8 @@ def run(event, context) -> Dict[str, int]:
                 'executionId': HASH,
                 'scrape': ['http...',...],
                 'crawls': 'https:...next_page',
-                'wait': time_to_wait (optional)
+                'wait': time_to_wait (optional),
+                'render': 'true/false' (optional)
             }
 
     Returns:
@@ -37,6 +38,10 @@ def run(event, context) -> Dict[str, int]:
     verifier = event['scrape']
     wait: bool = False
     timeout: float = 0.0
+    do_render: bool = False
+
+    if 'render' in event and event['render'].lower() == 'true':
+        do_render = True
 
     if 'wait' in event:
         wait = True
@@ -56,14 +61,14 @@ def run(event, context) -> Dict[str, int]:
     )
 
     if 'crawls' in event:
-        crawls_job = crawls_dispatcher.build_crawls(event['crawls'])
+        crawls_job = crawls_dispatcher.build_crawls(event['crawls'], do_render)
         crawls_response = crawls_dispatcher.send_batch(crawls_job)
 
         response.update({
             'crawls': 'OK'
         })
 
-    verifier_job = verifier_dispatcher.build_verifier(verifier)
+    verifier_job = verifier_dispatcher.build_verifier(verifier, do_render)
     verifier_response = verifier_dispatcher.send_batch(verifier_job)
 
     if verifier_response:

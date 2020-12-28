@@ -25,7 +25,8 @@ def run(event, context) -> Dict[str, str]:
     Examples:
         The param1 should look like this:
             {
-                'url': 'https://www.example.com'
+                'url': 'https://www.example.com',
+                'render': 'true/false' (optional)
             }
 
     Returns:
@@ -36,9 +37,14 @@ def run(event, context) -> Dict[str, str]:
     url: str = event['url']
     response: Dict[str, str] = {'id': execution_id}
     result: Dict[str, str] = {'id': execution_id}
-    html: bytes = get_from_url(event['url'])
     parser: ClassVar[T]
- 
+    do_render: bool = False
+
+    if 'render' in event and event['render'].lower() == 'true':
+        do_render = True
+
+    html: bytes = get_from_url(event['url'], do_render)
+
     xpaths: dict[str, str] = get_xpaths(
         table=environ['CRAWLS_XPATH'],
         url=event['url']
@@ -57,7 +63,7 @@ def run(event, context) -> Dict[str, str]:
         execution_id=execution_id
     )
 
-    dispatcher_job = dispatcher.build_dispatcher(urls, next_page, xpaths['parser_arguments_wait'], xpaths['parser_arguments_wait_time'])
+    dispatcher_job = dispatcher.build_dispatcher(urls, next_page, xpaths['parser_arguments_wait'], xpaths['parser_arguments_wait_time'], do_render=do_render)
     dispatcher_response = dispatcher.send_batch(dispatcher_job)
 
     if dispatcher_response:
