@@ -38,9 +38,8 @@ class Dispatcher:
         if not job:
             raise Exception('Missing job for Dispatcher.send_job')
 
-        print(f'sending job: {job}')
-        
         if self.wait:
+            print('Waiting to continue with the Process')
             sleep(self.timeout)
 
         response = self.sfn.start_execution(
@@ -62,6 +61,7 @@ class Dispatcher:
     def build_finisher(
         self,
         execution_id: str,
+        action: str,
         item: Dict[str, str],
         table: str,
         bucket: str = None,
@@ -70,7 +70,8 @@ class Dispatcher:
     ) -> List[Job]:
         job: List[Dict[str, str]] = list()
         struct: Dict[str, str] = {
-            'executionId': execution_id, 
+            'executionId': execution_id,
+            'action': action,
             'dynamo': {
                 'table': table,
                 'content': b64encode(dumps(item).encode('utf-8')).decode('utf-8')
@@ -90,34 +91,37 @@ class Dispatcher:
 
         return job
 
-    def build_crawls(self, url):
+    def build_crawls(self, url, render):
         job: List[Dict[str, str]] = list()
 
         job.append({
-            'url': url
+            'url': url,
+            'render': str(render).lower()
         })
 
         return job
 
-    def build_verifier(self, urls):
+    def build_verifier(self, urls, render):
         jobs: List[Dict[str, str]] = list()
-        
+
         job: Dict[str, str] = {
             'executionId': self.execution_id,
-            'urls': urls
+            'urls': urls,
+            'render': str(render).lower()
         }
 
         jobs.append(job)
 
         return jobs
 
-    def build_dispatcher(self, urls, next_page, do_wait, wait_time):
+    def build_dispatcher(self, urls, next_page, do_wait, wait_time, do_render = False):
         jobs: List[Dict[str, str]] = list() 
-        
+
         job = {
             'executionId': self.execution_id,
             'scrape': urls,
-            'crawls': next_page
+            'crawls': next_page,
+            'render': str(do_render).lower()
         }
 
         if do_wait == 'true':
