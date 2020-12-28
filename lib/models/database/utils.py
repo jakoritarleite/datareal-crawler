@@ -104,6 +104,23 @@ class DynamoUtils:
         self.dynamo = boto3.resource('dynamodb')
         self.table = self.dynamo.Table(self.dynamo_table)
 
+    def delete(self, query: dict) -> dict:
+        try:
+            response = table.delete_item(
+                Key={
+                    query['partition_key']: query[query['partition_key']],
+                    query['sort_key']: query[query['sort_key']]
+                }
+            )
+
+        except ClientError as e:
+            if e.response['Error']['Code'] == "ConditionalCheckFailedException":
+                print(e.response['Error']['Message'])
+            else:
+                raise
+        else:
+            return response
+
     def get(self, query: dict) -> dict:
         try:
             response = self.table.query(
@@ -112,12 +129,10 @@ class DynamoUtils:
             )
 
         except exceptions.ClientError as error:
-            print(error.response['Error']['Message'])
+            print(f'Error when getting Dynamo Item using GSI on Table {self.dynamo_table}', error)
 
         else:
-            for item in response['Items']:
-                if item['last_check'] == 'true':
-                    return item
+            return response['Items']
 
     def update(self, query: dict) -> dict:
         try:

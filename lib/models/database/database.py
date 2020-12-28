@@ -57,6 +57,14 @@ class Database:
         """
         self._s3 = _S3(self.s3_bucket, self.s3_filename, self.s3_content)
 
+    def update(self) -> None:
+        """Docstring the update function.
+
+        Update the content information on Dynamo
+        """
+        print('Updating Item')
+        self._dynamo._update()
+
     def save(self) -> None:
         """Docstring the save function.
 
@@ -83,6 +91,69 @@ class _Dynamo:
         print('Saving information on DYDB')
         self.table.put_item(Item=self.content)
         print('Saved on DynamoDB')
+
+    def _update(self):
+        try:
+            response = self.table.update_item(
+                Key={
+                    'id': self.content['id'],
+                    'scrapeId': self.content['scrapeId']
+                },
+                UpdateExpression=f"SET #url=:url, #title=:tit, #date=:dat, #category=:cat, #body=:bod, #rooms=:roo, #suites=:sui, #garages=:gar, #bathrooms=:bat, #price=:pri, #features=:fea, #city=:cit, #address=:add, #neighbourhood=:nei, #latitude=:lat, #longitude=:lon, #privative_area=:pri, #total_area=:tot, #ground_area=:gro, #images=:ima, #domain=:dom",
+                ExpressionAttributeValues={
+                    ':url': self.content['url'],
+                    ':tit': self.content['title'],
+                    ':cat': self.content['category'],
+                    ':bod': self.content['body'],
+                    ':roo': self.content['rooms'] ,
+                    ':sui': self.content['suites'],
+                    ':gar': self.content['garages'],
+                    ':bat': self.content['bathrooms'],
+                    ':pri': self.content['price'],
+                    ':fea': self.content['features'],
+                    ':dat': self.content['date'],
+                    ':cit': self.content['city'],
+                    ':add': self.content['address'],
+                    ':nei': self.content['neighbourhood'],
+                    ':lat': self.content['latitude'],
+                    ':lon': self.content['longitude'],
+                    ':pri': self.content['privative_area'],
+                    ':tot': self.content['total_area'],
+                    ':gro': self.content['ground_area'],
+                    ':ima': self.content['images'],
+                    ':dom': extract_domain(self.content['url'])
+                },
+                ExpressionAttributeNames={
+                    '#url': 'url',
+                    '#title': 'title',
+                    '#date': 'date',
+                    '#category': 'category',
+                    '#body': 'body',
+                    '#rooms': 'rooms',
+                    '#suites': 'suites',
+                    '#garages': 'garages',
+                    '#bathrooms': 'bathrooms',
+                    '#price': 'price',
+                    '#features': 'features',
+                    '#city': 'city',
+                    '#address': 'address',       
+                    '#neighbourhood': 'neighbourhood',
+                    '#latitude': 'latitude',
+                    '#longitude': 'longitude',
+                    '#privative_area': 'privative_area',
+                    '#total_area': 'total_area',
+                    '#ground_area': 'ground_area',
+                    '#images': 'images',
+                    '#domain': 'domain',
+                },
+                ReturnValues="UPDATED_NEW"
+            )
+
+            return response
+
+        except Exception as error:
+            print('Error when updating item:', error)
+            exit(1)
 
 class _S3:
     # TODO:
