@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from io import BytesIO
 from parsel import Selector
+from datetime import datetime
 from urllib.parse import urljoin
 
 from lib.url import validator
+from lib.url import extract_domain
 
 class Crawl:
     """Docstring for the Crawl class.
@@ -99,12 +101,12 @@ class Crawl:
         Args:
             param1 (bytes) content:
                 The HTML itself
-        
+
         Returns:
             A dict corresponding to the DynamoDB Pattern
             with all crawled content.
-            example: 
-        
+            example:
+
             {
                 'title': ...,
                 'price': ...,
@@ -150,18 +152,52 @@ class _Scrape:
         Returns:
             A dict with the crawled content
         """
-        parser: ClassVar[Parser] = Selector(text = content)
+        parser: ClassVar[Parser] = Selector(text=content)
         item: Dict[str, str] = dict()
-        items: List[str] = ['title', 'price', 'rooms', 'suites', 'garages', 'location', 'category', 'url', 'body', 'features', 'images']
+        items: List[str] = [
+            'url',
+            'date',
+            'domain',
+            'title',
+            'category',
+            'price',
+            'body',
+            'rooms',
+            'bathrooms',
+            'suites',
+            'garages',
+            'features',
+            'city',
+            'zipcode',
+            'neighbourhood',
+            'address',
+            'latitude',
+            'longitude',
+            'privative_area',
+            'total_area',
+            'ground_area',
+            'images'
+        ]
+
+        city: str = None
+        zipcode: str = None
+        neighbourhood: str = None
+        address: str = None
+        latitude: str = None
+        longitude: str = None
 
         body: str = parser.xpath(self.mapping['parser_body']).extract_first()
         title: str = parser.xpath(self.mapping['parser_title']).extract_first()
+        category: str = parser.xpath(self.mapping['parser_category']).extract_first()
         price: str = parser.xpath(self.mapping['parser_price']).extract_first()
         rooms: str = parser.xpath(self.mapping['parser_rooms']).extract_first()
         suites: str = parser.xpath(self.mapping['parser_suites']).extract_first()
         garages: str = parser.xpath(self.mapping['parser_garages']).extract_first()
+        bathrooms: str = parser.xpath(self.mapping['parser_bathrooms']).extract_first()
+        privative_area: str = parser.xpath(self.mapping['parser_privative_area']).extract_first()
+        total_area: str = parser.xpath(self.mapping['parser_total_area']).extract_first()
+        ground_area: str = parser.xpath(self.mapping['parser_ground_area']).extract_first()
         location: str = parser.xpath(self.mapping['parser_location']).extract_first()
-        category: str = parser.xpath(self.mapping['parser_category']).extract_first()
         features: List[str] = parser.xpath(self.mapping['parser_features']).extract()
         images_src: List[str] = parser.xpath(self.mapping['parser_images_src']).extract()
         images_alt: List[str] = parser.xpath(self.mapping['parser_images_alt']).extract()
@@ -173,6 +209,15 @@ class _Scrape:
             for i in range(len(images_src))
         ]
         url: str = url
+        domain: str = extract_domain(url)
+        date = datetime.today().strftime("%Y-%m-%d")
+
+        if self.mapping['options_location_use_geo'] == 'true':
+            latitude = parser.xpath(self.mapping['parser_location_latitude']).extract_first()
+            longitude = parser.xpath(self.mapping['parser_location_longitude']).extract_first()
+
+        elif self.mapping['options_location_use_geo'] == 'false':
+            address = location
 
         for variable in items:
             item[variable] = eval(variable)
@@ -266,17 +311,51 @@ class _Head:
             A dict with the crawled content
 
         """
-        parser: ClassVar[Parser] = Selector(text = content)
+        parser: ClassVar[Parser] = Selector(text=content)
         item: Dict[str, str] = dict()
-        items: List[str] = ['title', 'price', 'rooms', 'bathrooms', 'garages', 'location', 'category', 'url', 'body', 'features', 'images']
+
+        items: List[str] = [
+            'url',
+            'domain',
+            'title',
+            'category',
+            'price',
+            'body',
+            'rooms',
+            'bathrooms',
+            'suites',
+            'garages',
+            'features',
+            'city',
+            'zipcode',
+            'neighbourhood',
+            'address',
+            'latitude',
+            'longitude',
+            'privative_area',
+            'total_area',
+            'ground_area',
+            'images'
+        ]
 
         head_json = eval(parser.xpath(self.mapping['parser_json']).extract_first().replace('null', 'None').replace('true', 'True').replace('false', 'False'))['ad']
 
         body: str = head_json['body']
         title: str = parser.xpath(self.mapping['parser_title']).extract_first()
         location: Dict[str, str] = head_json['location']
+
+        city: str = location['municipality']
+        zipcode: str = location['zipcode']
+        neighbourhood: str = location['neighbourhood']
+        address: str = location['address']
+        latitude: str = location['mapLati']
+        longitude: str = location['mapLong']
+        privative_area: str = None
+        total_area: str = None
+        ground_area: str = None
+
         price: str = None
-        
+
         if 'priceValue' in head_json:
             price = head_json['priceValue']
 
@@ -284,6 +363,7 @@ class _Head:
         garages: str = None
         bathrooms: str = None
         category: str = None
+        suites: str = None
         features: list = list()
 
         for _property in head_json['properties']:
@@ -302,6 +382,16 @@ class _Head:
             elif _property['name'] == 'category':
                 category = _property['value']
 
+            elif _property['name'] == 'size':
+                if _property['label'] == 'Área útil':
+                    privative_area = _property['value']
+                elif _property['label'] == 'Tamanho':
+                    ground_area = _property['value']
+                elif _property['label'] == 'Área total':
+                    total_area = _property['value']
+                else:
+                    total_area = _property
+
             elif 'features' in _property['name']:
                 for feature in _property['values']:
                     features.append(feature['label'])
@@ -309,12 +399,22 @@ class _Head:
         images: list = list()
 
         for image in head_json['images']:
-           images.append({
-               'src': image['original'],
-               'alt': image['originalAlt']
-           })
+            try:
+                images.append(
+                    {
+                        'src': image['original'],
+                        'alt': image['originalAlt']
+                    }
+                )
+
+            except KeyError:
+                pass
 
         for variable in items:
             item[variable] = eval(variable)
+
+        print('OLX head_json["ad"]', head_json)
+
+        print('FINAL OLX ITEM', item)
 
         return item
