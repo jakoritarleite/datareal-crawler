@@ -128,6 +128,25 @@ def features(content: list) -> Clean[Features]:
 def garages(content: str) -> Clean[Garages]:
     formated = cleaner(content)
 
+    if formated_cleansed := findall(r'\d+', formated):
+        formated_cleansed = ''.join(formated_cleansed[i] for i in range(len(formated_cleansed)))
+
+        try:
+            return int(formated_cleansed)
+
+        except Exception:
+            pass
+
+    elif not formated_cleansed := findall(r'\d+', formated):
+        if 'garage' in formated:
+            formated_cleansed = '1'
+
+            try:
+                return int(formated_cleansed)
+
+            except Exception:
+                pass
+
     return formated
 
 def total_area(content: str) -> Clean[TotalArea]:
