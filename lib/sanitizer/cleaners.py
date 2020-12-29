@@ -121,7 +121,8 @@ def category(content: str) -> Clean[Category]:
 def features(content: list) -> Clean[Features]:
     formated = list()
     for feature in content:
-        formated.append(cleaner(feature))
+        if feature.strip():
+            formated.append(cleaner(feature))
 
     return formated
 
