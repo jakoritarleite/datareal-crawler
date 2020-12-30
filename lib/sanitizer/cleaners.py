@@ -153,14 +153,23 @@ def garages(content: str) -> Clean[Garages]:
 def total_area(content: str) -> Clean[TotalArea]:
     formated = cleaner(content)
 
+    if formated := regex_int(formated):
+        formated = formated
+
     return formated
 
 def ground_area(content: str) -> Clean[GroundArea]:
     formated = cleaner(content)
 
+    if formated := regex_int(formated):
+        formated = formated
+
     return formated
 
 def privative_area(content: str) -> Clean[PrivativeArea]:
     formated = cleaner(content)
+
+    if formated := regex_int(formated):
+        formated = formated
 
     return formated
