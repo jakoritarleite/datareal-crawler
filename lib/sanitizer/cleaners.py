@@ -138,7 +138,7 @@ def garages(content: str) -> Clean[Garages]:
         except Exception:
             pass
 
-    elif not formated_cleansed := findall(r'\d+', formated):
+    elif not findall(r'\d+', formated):
         if 'garage' in formated:
             formated_cleansed = '1'
 
