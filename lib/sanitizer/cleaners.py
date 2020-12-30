@@ -180,3 +180,38 @@ def privative_area(content: str) -> Clean[PrivativeArea]:
         formated = formated
 
     return formated
+
+def latitude(Content: str) -> Clean[Latitude]:
+    formated = cleaner(content)
+
+    return formated
+
+def longitude(Content: str) -> Clean[Longitude]:
+    formated = cleaner(content)
+
+    return formated
+
+def location(Content: str) -> Clean[Location]:
+    formated = cleaner(content)
+
+    return formated
+
+def address(Content: str) -> Clean[Address]:
+    formated = cleaner(content)
+
+    return formated
+
+def zipcode(Content: str) -> Clean[ZipCode]:
+    formated = cleaner(content)
+
+    return formated
+
+def neighbourhood(Content: str) -> Clean[Neighbourhood]:
+    formated = cleaner(content)
+
+    return formated
+
+def city(Content: str) -> Clean[City]:
+    formated = cleaner(content)
+
+    return formated
