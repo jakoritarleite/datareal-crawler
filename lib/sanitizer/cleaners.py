@@ -79,8 +79,12 @@ def title(content: str) -> Clean[Title]:
     return formated
 
 def price(content: str) -> Clean[Price]:
-    if formated := regex_int(content):
-        return formated
+    formated = cleaner(content)
+
+    if formated := regex_int(formated):
+        formated = formated
+
+    return formated
 
 def rooms(content: str) -> Clean[Rooms]:
     formated = cleaner(content)
@@ -100,6 +104,9 @@ def suites(content: str) -> Clean[Suites]:
 
 def bathrooms(content: str) -> Clean[Bathrooms]:
     formated = cleaner(content)
+
+    if formated := regex_int(formated, False, 1):
+        formated = formated
 
     return formated
 
