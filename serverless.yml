@@ -1,6 +1,6 @@
 service: datareal-crawler
 
-frameworkVersion: ^2.14.0
+frameworkVersion: ^2.18.0
 
 plugins:
   - serverless-step-functions
