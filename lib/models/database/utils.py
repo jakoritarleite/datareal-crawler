@@ -15,6 +15,7 @@ import hashlib
 from io import BytesIO
 from base64 import b64encode
 from io import open as openIO
+from datetime import datetime
 from botocore import exceptions
 from boto3.dynamodb import conditions
 from lib.url import extract_domain, extract_path
@@ -50,8 +51,8 @@ class S3Utils:
         file = hashlib.md5(path.encode()).hexdigest()
 
         response.update({
-            'folder': folder,
-            'file': file + '.body'
+            'folder': f'{folder}/{file}',
+            'file': datetime.today().strftime("%Y-%m-%d") + '.body'
         })
 
         return response
