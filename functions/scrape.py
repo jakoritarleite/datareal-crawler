@@ -4,6 +4,7 @@ from os import environ
 from uuid import uuid4
 
 from lib.models.crawl import Crawl
+from lib.sanitizer import Sanitizer
 from lib.models.dispatcher import Dispatcher
 
 from lib.models.database import S3Utils
@@ -87,6 +88,8 @@ def run(event, context) -> Dict[str, int]:
     )
 
     content: Dict[str, str] = parser.get_content(content=html, url=event['url'])
+    snt = Sanitizer(content)
+    content_cleanser = snt.clean()
 
     result.update(content)
 
