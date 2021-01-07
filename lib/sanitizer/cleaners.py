@@ -3,6 +3,7 @@ from __future__ import annotations
 from re import findall
 from lxml import etree
 from io import StringIO
+from decimal import Decimal
 
 categories = {
     'Types': ['Apartamentos', 'Casas', 'Comércios', 'Sobrados', 'Galpões', 'Terrenos', 'Salas', 'Lofts'],
@@ -66,12 +67,18 @@ def regex_int(content: str, group: bool = True, index=0):
             return content
 
 def cleaner(content: str) -> Clean[Content]:
-    formated = content.strip()
-    formated = formated.replace('\t', '')
-    formated = formated.replace('\r', '')
-    formated = formated.replace('\n', '')
+    if isinstance(content, Decimal) or isinstance(content, int):
+        content = str(content)
 
-    return formated
+    if isinstance(content, str):
+        formated = content.strip()
+        formated = formated.replace('\t', '')
+        formated = formated.replace('\r', '')
+        formated = formated.replace('\n', '')
+        formated = formated.replace('<br>', '')
+
+        return formated
+    return content
 
 def title(content: str) -> Clean[Title]:
     formated = cleaner(content)

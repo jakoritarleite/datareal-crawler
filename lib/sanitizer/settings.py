@@ -4,6 +4,7 @@ IGNORE_ITEMS = [
     'url',
     'domain',
     'date',
+    'images',
     'p_area',
     'u_area',
     't_area'
