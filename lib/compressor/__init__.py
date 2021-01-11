@@ -1,0 +1,1 @@
+from lib.compressor.main import compress, decompress
