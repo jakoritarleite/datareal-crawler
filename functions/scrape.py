@@ -36,7 +36,7 @@ def run(event, context) -> Dict[str, int]:
                 'scrapeId': HASH (MAY NOT BE HERE),
                 'action': 'UPDATE/PUT',
                 'url': 'https://www.example.com',
-                'url': 's3://datareal-crawler-bodies/{md5(domain)}}/{md5(path)}.body',
+                'url': 's3://datareal-crawler-bodies/{md5(domain)}}/{md5(path)}/date.body',
                 'content': '<html>...' (MAY NO BE HERE)
             }
 
@@ -57,7 +57,7 @@ def run(event, context) -> Dict[str, int]:
     if 'render' in event and event['render'].lower() == 'true':
         do_render = True
 
-    dispatcher_prive_verifier: ClassVar[Dispatcher] = Dispatcher(
+    dispatcher_price_verifier: ClassVar[Dispatcher] = Dispatcher(
         machine_arn=environ['PRICE_VERIFIER_ARN'],
         execution_id=execution_id
     )
@@ -89,9 +89,9 @@ def run(event, context) -> Dict[str, int]:
 
     content: Dict[str, str] = parser.get_content(content=html, url=event['url'])
     snt = Sanitizer(content)
-    content_cleanser = snt.clean()
+    content_cleansed = snt.clean()
 
-    result.update(content)
+    result.update(content_cleansed)
 
     s3_bucket: str = None
     s3_path: str = None
@@ -105,8 +105,8 @@ def run(event, context) -> Dict[str, int]:
         s3_file = s3_object['file']
         s3_path = f'{s3_folder}/{s3_file}'
 
-    jobs_pv = dispatcher_prive_verifier.build_finisher(execution_id=execution_id, action=event['action'], item=result, table=environ['CRAWLS_TABLE_NAME'], bucket=s3_bucket, filename=s3_path, file_content=html)
-    sent_pv = dispatcher_prive_verifier.send_batch(jobs_pv)
+    jobs_pv = dispatcher_price_verifier.build_finisher(execution_id=execution_id, action=event['action'], item=result, table=environ['CRAWLS_TABLE_NAME'])
+    sent_pv = dispatcher_price_verifier.send_batch(jobs_pv)
 
     jobs_fn = dispatcher_finisher.build_finisher(execution_id=execution_id, action=event['action'], item=result, table=environ['CRAWLS_TABLE_NAME'], bucket=s3_bucket, filename=s3_path, file_content=html)
     sent_fn = dispatcher_finisher.send_batch(jobs_fn)
