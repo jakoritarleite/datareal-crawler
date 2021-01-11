@@ -188,37 +188,37 @@ def privative_area(content: str) -> Clean[PrivativeArea]:
 
     return formated
 
-def latitude(Content: str) -> Clean[Latitude]:
+def latitude(content: str) -> Clean[Latitude]:
     formated = cleaner(content)
 
     return formated
 
-def longitude(Content: str) -> Clean[Longitude]:
+def longitude(content: str) -> Clean[Longitude]:
     formated = cleaner(content)
 
     return formated
 
-def location(Content: str) -> Clean[Location]:
+def location(content: str) -> Clean[Location]:
     formated = cleaner(content)
 
     return formated
 
-def address(Content: str) -> Clean[Address]:
+def address(content: str) -> Clean[Address]:
     formated = cleaner(content)
 
     return formated
 
-def zipcode(Content: str) -> Clean[ZipCode]:
+def zipcode(content: str) -> Clean[ZipCode]:
     formated = cleaner(content)
 
     return formated
 
-def neighbourhood(Content: str) -> Clean[Neighbourhood]:
+def neighbourhood(content: str) -> Clean[Neighbourhood]:
     formated = cleaner(content)
 
     return formated
 
-def city(Content: str) -> Clean[City]:
+def city(content: str) -> Clean[City]:
     formated = cleaner(content)
 
     return formated
