@@ -25,11 +25,6 @@ def run(event, context) -> Dict[str, str]:
         'dynamo': {
             'table': ...,
             ...
-        },
-        's3': {                 // This may not be in the dict, depends if the body already exists on the S3 bucket
-            'bucket': ...,
-            'filename': ...,
-            'content': ...
         }
     }
     """
