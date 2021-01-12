@@ -6,6 +6,7 @@ from uuid import uuid4
 from boto3 import client
 
 from base64 import b64encode
+from lib.compressor import compress
 
 class Dispatcher:
     def __init__(
@@ -83,7 +84,7 @@ class Dispatcher:
                 's3': {
                     'bucket': bucket,
                     'filename': filename,
-                    'content': b64encode(file_content).decode()
+                    'content': b64encode(compress(file_content)).decode()
                 }
             })
 

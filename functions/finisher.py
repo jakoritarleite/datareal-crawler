@@ -22,6 +22,7 @@
 from json import loads
 from base64 import b64decode
 
+from lib.compressor import decompress
 from lib.exceptions import DataRealError
 from lib.models.database import Database
 
@@ -39,7 +40,7 @@ def run(event, context):
     if 's3' in event:
         s3_bucket = event['s3']['bucket']
         s3_filename = event['s3']['filename']
-        s3_content = b64decode(event['s3']['content'].encode())
+        s3_content = decompress(b64decode(event['s3']['content'].encode()))
 
     database = Database(
         dynamodb_table,
