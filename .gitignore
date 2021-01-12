@@ -10,3 +10,7 @@ __pycache__
 
 # VSCode configurations
 .vscode
+
+# Compiled libraries
+dist
+*.so

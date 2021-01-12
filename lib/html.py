@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from lib.models.request import Request
-
 from io import BytesIO
 from os.path import split
 from base64 import b64decode
 from urllib.parse import urlparse
+
+from lib.request import librequest
+from lib.fake_headers import UserAgent
 
 def get_from_url(url: str, do_render: bool = False) -> bytes:
     content: bytes
@@ -27,13 +28,13 @@ def get_from_url(url: str, do_render: bool = False) -> bytes:
         content = s3_object.download
 
     elif 'http' in url:
-        request = Request(
-            url,
-            render=do_render
-        )
-        response = request.fetch()
+        response = librequest.request(
+            url=url,
+            method='GET',
+            render=do_render,
+            user_agent=f"User-Agent: {UserAgent().random()}")
 
-        content = response.content
+        content = response['content']
 
     elif url == None:
         raise Exception('URL Must not be None.\nNote that if the Spider crawled every page, it will return None at the end.')

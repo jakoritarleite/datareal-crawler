@@ -1,0 +1,16 @@
+[package]
+name = "request"
+version = "0.1.0"
+authors = ["Joao Koritar <jakoritarleite@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "request"
+crate-type = ["dylib"]
+
+[profile.release]
+codegen-units = 1
+
+[dependencies]
+curl = { version = "0.4.34" }
+cpython = { version = "0.5", features = ["extension-module"] }
