@@ -7,6 +7,11 @@ plugins:
   - serverless-pseudo-parameters
   - serverless-python-requirements
 
+package:
+  exclude:
+    - dist/**
+    - src/**
+
 provider:
   name: aws
   runtime: python3.8
