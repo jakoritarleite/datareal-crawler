@@ -32,15 +32,28 @@ def get_from_url(url: str, do_render: bool = False) -> bytes:
             url=url,
             method='GET',
             render=do_render,
-            user_agent=f"User-Agent: {UserAgent().random()}")
+            user_agent=f"User-Agent: {UserAgent().random()}",
+            use_proxy=False)
 
         content = response['content']
+        print(f'response from request {response["status_code"]}')
+        print(f'html content len<{len(content)}>')
+
+        if response['status_code'] != 200:
+            print('Status code was not 200, trying to handle it using Proxy.')
+            response = librequest.request(
+                url=url,
+                method='GET',
+                render=do_render,
+                user_agent=f"User-Agent: {UserAgent().random()}",
+                use_proxy=True)
+
+            content = response['content']
 
     elif url == None:
         raise Exception('URL Must not be None.\nNote that if the Spider crawled every page, it will return None at the end.')
 
-    if content:
-        return content
+    return content
 
 def get_from_body(html_content: bytes) -> bytes:
     content: bytes
