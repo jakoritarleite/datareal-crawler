@@ -9,7 +9,7 @@ categories = {
     'Types': ['Apartamentos', 'Casas', 'Comércios', 'Sobrados', 'Galpões', 'Terrenos', 'Salas', 'Lofts'],
     'Apartamentos': ['apartamento', 'apto', 'giardino', 'garden', 'cobertura'],
     'Casas': ['casa', 'residência', 'residencia'],
-    'Comércios': ['ponto', 'empreendimento'],
+    'Comércios': ['ponto', 'empreendimento', 'comercial'],
     'Sobrados': ['sobrado', 'geminado'],
     'Galpões': ['galpão', 'galpao'],
     'Terrenos': ['terreno', 'área', 'area', 'rural'],
@@ -19,7 +19,7 @@ categories = {
 
 formated = None
 
-def regex_int(content: str, group: bool = True, index=0):
+def regex_int(content: str, group: bool = True, index=0, regex_expression=r'\d+'):
     content_sio = StringIO(content)
     try:
         parser = etree.parse(content_sio)
@@ -27,7 +27,7 @@ def regex_int(content: str, group: bool = True, index=0):
         if content_parsed := parser.xpath('//*/text()'):
             if len(content_parsed) > 1:
                 for i in range(len(content_parsed)):
-                    if content_integer := findall(r'\d+', content_parsed[i]):
+                    if content_integer := findall(regex_expression, content_parsed[i]):
                         if group:
                             content_parsed = ''.join(content_integer[j] for j in range(len(content_integer)) if content_integer[i] != '00')
 
@@ -37,7 +37,7 @@ def regex_int(content: str, group: bool = True, index=0):
                 return content_parsed
             
             else:
-                if content_integer := findall(r'\d+', content_parsed[0]):
+                if content_integer := findall(regex_expression, content_parsed[0]):
                     if group:
                         content_parsed = ''.join(content_integer[j] for j in range(len(content_integer)) if content_integer[0] != '00')
 
@@ -50,7 +50,7 @@ def regex_int(content: str, group: bool = True, index=0):
             return content
 
     except Exception:
-        if content_parsed := findall('\d+', content):
+        if content_parsed := findall(regex_expression, content):
             if (content_integer := content_parsed) and (len(content_parsed) > 1):
                 if group:
                     content_parsed = ''.join(content_integer[i] for i in range(len(content_integer)) if content_integer[i] != '00')
@@ -76,7 +76,13 @@ def cleaner(content: str) -> Clean[Content]:
         formated = formated.replace('\r', '')
         formated = formated.replace('\n', '')
         formated = formated.replace('<br>', '')
-        formated = formated.replace('m²', '')
+
+        # The code below is to format Brazil`s numeric model to the Global
+        # This code must be deleted when we add global websites
+        formated = formated.replace('.', '@')
+        formated = formated.replace(',', '!')
+        formated = formated.replace('!', '.')
+        formated = formated.replace('@', ',')
 
         return formated.strip()
     return content
@@ -89,7 +95,7 @@ def title(content: str) -> Clean[Title]:
 def price(content: str) -> Clean[Price]:
     formated = cleaner(content)
 
-    if formated := regex_int(formated):
+    if formated := regex_int(formated, regex_expression=r'\d+(?:[\,\.]{0,}\d+)+'):
         formated = formated
 
     return formated
@@ -168,15 +174,24 @@ def garages(content: str) -> Clean[Garages]:
 def total_area(content: str) -> Clean[TotalArea]:
     formated = cleaner(content)
 
+    if formated := regex_int(formated, regex_expression=r'\d+(?:[\d+\,\.]{0,}\d+)+'):
+        formated = formated
+
     return formated
 
 def ground_area(content: str) -> Clean[GroundArea]:
     formated = cleaner(content)
 
+    if formated := regex_int(formated, regex_expression=r'\d+(?:[\d+\,\.]{0,}\d+)+'):
+        formated = formated
+
     return formated
 
 def privative_area(content: str) -> Clean[PrivativeArea]:
     formated = cleaner(content)
+
+    if formated := regex_int(formated, regex_expression=r'\d+(?:[\d+\,\.]{0,}\d+)+'):
+        formated = formated
 
     return formated
 

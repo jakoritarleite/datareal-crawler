@@ -115,7 +115,7 @@ class Dispatcher:
 
         return jobs
 
-    def build_dispatcher(self, urls, next_page, do_wait, wait_time, do_render = False):
+    def build_dispatcher(self, urls, next_page, do_wait, wait_time, do_render=False):
         jobs: List[Dict[str, str]] = list() 
 
         job = {
