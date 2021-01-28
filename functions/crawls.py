@@ -58,12 +58,18 @@ def run(event, context) -> Dict[str, str]:
 
     urls, next_page = parser.get_content(content=html, url=event['url'])
 
+    print(f'urls len<{len(urls)}>')
+    print(f'next_page <{next_page}>')
+
+    if len(urls) == 0:
+        print(html)
+
     dispatcher: ClassVar[Dispatcher] = Dispatcher(
         machine_arn=environ['DISPATCHER_ARN'],
         execution_id=execution_id
     )
 
-    dispatcher_job = dispatcher.build_dispatcher(urls, next_page, xpaths['parser_arguments_wait'], xpaths['parser_arguments_wait_time'], do_render=do_render)
+    dispatcher_job = dispatcher.build_dispatcher(urls, next_page, xpaths['parser_arguments_wait'], xpaths['parser_arguments_wait_time'])
     dispatcher_response = dispatcher.send_batch(dispatcher_job)
 
     if dispatcher_response:
