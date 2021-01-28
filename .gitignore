@@ -13,4 +13,3 @@ __pycache__
 
 # Compiled libraries
 dist
-*.so
