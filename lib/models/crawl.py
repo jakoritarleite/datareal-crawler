@@ -113,7 +113,7 @@ class Crawl:
                 ...
             }
         """
-        result: Dict[str, str] = self.crawler._get(content.decode(self.encoding), url)
+        result: Dict[str, str] = self.crawler._get(content, url)
 
         return result
 
@@ -337,6 +337,9 @@ class _Head:
             'ground_area',
             'images'
         ]
+
+        domain: str = extract_domain(url)
+        url: str = url
 
         head_json = eval(parser.xpath(self.mapping['parser_json']).extract_first().replace('null', 'None').replace('true', 'True').replace('false', 'False'))['ad']
 
