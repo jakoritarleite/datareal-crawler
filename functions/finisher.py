@@ -18,9 +18,9 @@
         }
     }
 """
-
 from json import loads
 from base64 import b64decode
+from datetime import datetime
 
 from lib.compressor import decompress
 from lib.exceptions import DataRealError
@@ -53,6 +53,8 @@ def run(event, context):
 
     dynamodb_properties_content = dynamodb_content
     dynamodb_properties_content['id'] = dynamodb_properties_content['scrapeId']
+    dynamodb_properties_content['status'] = loads(event['dynamo']['http_status'])
+
     del dynamodb_properties_content['date']
     del dynamodb_properties_content['scrapeId']
 
@@ -63,7 +65,7 @@ def run(event, context):
         if dynamodb_properties_content[key] == None:
             dynamodb_properties_content[key] = 'Undefined'
 
-        if not key in ['features', 'images']:
+        if not key in ['features', 'images', 'status']:
             dynamodb_properties_content[key] = str(dynamodb_properties_content[key])
 
     database_properties = Database(
