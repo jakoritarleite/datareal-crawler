@@ -67,37 +67,13 @@ def run(event, context) -> Dict[str, str]:
             )
 
             if s3_func.verify():
-                job.update({'content': s3_func.download()})
+                job.update(
+                    {
+                        'content': s3_func.download()
+                    }
+                )
 
-        job.update({
-            'executionId': execution_id,
-            'scrapeId': None,
-            'action': 'PUT'
-        })
-        jobs.append(job)
-
-    sent = dispatcher.send_batch(jobs)
-
-    if sent:
-        response.update({
-            'status_code': 200,
-            'status_machine_arn': environ['SCRAPE_ARN']
-        })
-
-    else:
-        response.update({
-            'status_code': 500
-        })
-
-    print(
-        'next_machine_response:\n',
-        sent
-    )
-
-    return response
-
-"""
-This commented code block is for when you want to update the existent items on Db with the new ones    
+"""This commented code block is for when you want to update the existent items on Db with the new ones    
         if dynamo_object := DynamoUtils(environ['CRAWLS_TABLE_NAME']).get(
             {
                 'index': 'url-index',
@@ -127,3 +103,29 @@ This commented code block is for when you want to update the existent items on D
 
         else:
             print('The URL do not exists on Dynamo Table') """
+        job.update({
+            'executionId': execution_id,
+            'scrapeId': None,
+            'action': 'PUT'
+        })
+        jobs.append(job)
+
+    sent = dispatcher.send_batch(jobs)
+
+    if sent:
+        response.update({
+            'status_code': 200,
+            'status_machine_arn': environ['SCRAPE_ARN']
+        })
+
+    else:
+        response.update({
+            'status_code': 500
+        })
+
+    print(
+        'next_machine_response:\n',
+        sent
+    )
+
+    return response
