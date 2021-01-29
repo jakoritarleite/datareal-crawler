@@ -21,6 +21,7 @@ provider:
     STAGE: ${self:provider.stage}
     REGION: ${self:provider.region}
     CRAWLS_TABLE_NAME: ${self:custom.crawlsTableName}
+    PROPERTIES_TABLE_NAME: ${self:custom.propertiesTableName}
     CRAWLS_XPATH: ${self:custom.crawlsXpathTableName}
     SCRAPE_XPATH: ${self:custom.scrapeXpathTableName}
     PRICE_VARIATION: ${self:custom.priceVariationTableName}
@@ -39,6 +40,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
       Resource:
+        - ${self:custom.propertiesTableArn}
         - ${self:custom.crawlsTableArn}
         - ${self:custom.priceVariationTableArn}
     - Effect: Allow
@@ -52,6 +54,13 @@ provider:
         - dynamodb:Query
         - dynamodb:GetItem
       Resource:
+        # datareal-crawler-dev-properties table-index
+        - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.propertiesTableName}"
+        - Fn::Join:
+          - "/"
+          -
+            - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.propertiesTableName}"
+            - "index/*"
         # datareal-crawler-dev-crawls table-index
         - "arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.crawlsTableName}"
         - Fn::Join:
@@ -95,6 +104,16 @@ provider:
 custom:
   pythonRequirements:
     dockerizePip: false
+  propertiesTableName: ${self:service}-${self:provider.stage}-properties
+  propertiesTableArn:
+    Fn::Join:
+    - ":"
+    - - arn
+      - aws
+      - dynamodb
+      - Ref: AWS::Region
+      - Ref: AWS::AccountId
+      - table/${self:custom.propertiesTableName}
   crawlsTableName: ${self:service}-${self:provider.stage}-crawls
   crawlsTableArn:
     Fn::Join:
@@ -257,6 +276,12 @@ resources:
           - AttributeName: scrapeId
             KeyType: RANGE
   Outputs:
+    PropertiesTableName:
+      Description: The name of the Properties Dynamo table
+      Value: ${self:custom.propertiesTableName}
+    PropertiesTableArn:
+      Description: The ARN of the Properties Dynamo table
+      Value: ${self:custom.propertiesTableArn}
     CrawlsTableName:
       Description: The name of the Crawls Dynamo table 
       Value: ${self:custom.crawlsTableName}
