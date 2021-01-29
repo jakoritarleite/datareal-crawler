@@ -56,7 +56,8 @@ def run(event, context) -> Dict[str, str]:
         use_s3 = True
 
     for url in event['urls']:
-        job: Dict[str, str] = dict({'url': url, 'saveS3': 'true', 'render': str(do_render).lower()})
+        # job: Dict[str, str] = dict({'url': url, 'saveS3': str(use_s3).lower(), 'render': str(do_render).lower()})
+        job: Dict[str, str] = dict({'executionId': event['executionId'], 'url': url, 'saveS3': 'true', 'render': str(do_render).lower()})
 
         if use_s3:
             s3_object = S3Utils.get_filename_from_url(url)
@@ -67,14 +68,10 @@ def run(event, context) -> Dict[str, str]:
             )
 
             if s3_func.verify():
-                job.update(
-                    {
-                        'content': s3_func.download()
-                    }
-                )
+                job.update({'content': s3_func.download()})
 
-"""This commented code block is for when you want to update the existent items on Db with the new ones    
-        if dynamo_object := DynamoUtils(environ['CRAWLS_TABLE_NAME']).get(
+        # This commented code block is for when you want to update the existent items on Db with the new ones    
+        if dynamo_object := DynamoUtils(environ['PROPERTIES_TABLE_NAME']).get(
             {
                 'index': 'url-index',
                 'key': 'url',
@@ -86,28 +83,27 @@ def run(event, context) -> Dict[str, str]:
             if len(dynamo_object) > 1:
                 for obj in dynamo_object[1:]:
                     print('Deleting duplicated URLs')
-                    DynamoUtils(environ['CRAWLS_TABLE_NAME']).delete(
+                    DynamoUtils(environ['PROPERTIES_TABLE_NAME']).delete(
                         {
                             'partition_key': 'id',
-                            'sort_key': 'scrapeId',
+                            'sort_key': 'url',
                             'id': obj['id'],
-                            'scrapeId': obj['scrapeId']
+                            'url': obj['url']
                         }
                     )
-
             job.update({
-                'executionId': dynamo_object[0]['id'],
-                'scrapeId': dynamo_object[0]['scrapeId'],
+                'scrapeId': dynamo_object[0]['id'],
+                'url': dynamo_object[0]['url'],
                 'action': 'UPDATE'
             })
 
         else:
-            print('The URL do not exists on Dynamo Table') """
-        job.update({
-            'executionId': execution_id,
-            'scrapeId': None,
-            'action': 'PUT'
-        })
+            print('The URL do not exists on Dynamo Table')
+            job.update({
+                'scrapeId': None,
+                'action': 'PUT'
+            })
+
         jobs.append(job)
 
     sent = dispatcher.send_batch(jobs)

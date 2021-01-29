@@ -114,9 +114,9 @@ class DynamoUtils:
                 }
             )
 
-        except ClientError as e:
-            if e.response['Error']['Code'] == "ConditionalCheckFailedException":
-                print(e.response['Error']['Message'])
+        except exceptions.ClientError as error:
+            if error.response['Error']['Code'] == "ConditionalCheckFailedException":
+                print(error.response['Error']['Message'])
             else:
                 raise
         else:

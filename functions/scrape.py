@@ -37,14 +37,14 @@ def run(event, context) -> Dict[str, int]:
                 'action': 'UPDATE/PUT',
                 'url': 'https://www.example.com',
                 'url': 's3://datareal-crawler-bodies/{md5(domain)}}/{md5(path)}/date.body',
-                'content': '<html>...' (MAY NO BE HERE)
+                'content': '<html>...' (MAY NOT BE HERE)
             }
 
     Returns:
         Object with status code 200 if everything went ok
         and if something goes wrong it returns another statue code
     """
-    execution_id = event['executionId']
+    execution_id = event['executionId'] or str(uuid4())
     scrape_id = event['scrapeId'] or str(uuid4())
     save_s3 = event['saveS3']
     response: Dict[str, str] = {'id': execution_id, 'scrapeId': scrape_id}
@@ -54,7 +54,15 @@ def run(event, context) -> Dict[str, int]:
     use_head: bool = False
     do_render: bool = False
 
+    xpaths: dict[str, str] = get_xpaths(
+        table=environ['SCRAPE_XPATH'],
+        url=event['url']
+    )
+
     if 'render' in event and event['render'].lower() == 'true':
+        do_render = True
+
+    elif 'option_use_render' in xpaths and xpaths['option_use_render'].lower() == 'true':
         do_render = True
 
     dispatcher_price_verifier: ClassVar[Dispatcher] = Dispatcher(
@@ -75,11 +83,6 @@ def run(event, context) -> Dict[str, int]:
 
     if 'olx' in event['url']:
         use_head = True
-
-    xpaths: dict[str, str] = get_xpaths(
-        table=environ['SCRAPE_XPATH'],
-        url=event['url']
-    )
 
     parser = Crawl(
         mapping=xpaths,
