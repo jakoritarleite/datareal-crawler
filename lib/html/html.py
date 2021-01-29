@@ -53,7 +53,7 @@ def get_from_url(url: str, do_render: bool = False) -> bytes:
     elif url == None:
         raise Exception('URL Must not be None.\nNote that if the Spider crawled every page, it will return None at the end.')
 
-    return content
+    return response['status_code'], content
 
 def get_from_body(html_content: bytes) -> bytes:
     content: bytes

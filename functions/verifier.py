@@ -91,9 +91,11 @@ def run(event, context) -> Dict[str, str]:
                             'url': obj['url']
                         }
                     )
+            print('last_http', dynamo_object[0]['status'])
             job.update({
                 'scrapeId': dynamo_object[0]['id'],
                 'url': dynamo_object[0]['url'],
+                'last_http': dynamo_object[0]['status'],
                 'action': 'UPDATE'
             })
 

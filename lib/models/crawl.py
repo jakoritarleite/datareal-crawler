@@ -316,6 +316,7 @@ class _Head:
 
         items: List[str] = [
             'url',
+            'date',
             'domain',
             'title',
             'category',
@@ -340,6 +341,7 @@ class _Head:
 
         domain: str = extract_domain(url)
         url: str = url
+        date = datetime.today().strftime("%Y-%m-%d")
 
         head_json = eval(parser.xpath(self.mapping['parser_json']).extract_first().replace('null', 'None').replace('true', 'True').replace('false', 'False'))['ad']
 

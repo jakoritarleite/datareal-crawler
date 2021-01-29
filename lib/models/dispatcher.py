@@ -65,9 +65,10 @@ class Dispatcher:
         action: str,
         item: Dict[str, str],
         table: str,
+        http: dict = {},
         bucket: str = None,
         filename: str = None,
-        file_content: bytes = None 
+        file_content: bytes = None
     ) -> List[Job]:
         job: List[Dict[str, str]] = list()
         struct: Dict[str, str] = {
@@ -75,7 +76,8 @@ class Dispatcher:
             'action': action,
             'dynamo': {
                 'table': table,
-                'content': b64encode(dumps(item).encode('utf-8')).decode('utf-8')
+                'content': b64encode(dumps(item).encode('utf-8')).decode('utf-8'),
+                'http_status': dumps(http)
             }
         }
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from os import environ
 from uuid import uuid4
+from datetime import datetime
 
 from lib.models.crawl import Crawl
 from lib.sanitizer import Sanitizer
@@ -36,6 +37,7 @@ def run(event, context) -> Dict[str, int]:
                 'scrapeId': HASH (MAY NOT BE HERE),
                 'action': 'UPDATE/PUT',
                 'url': 'https://www.example.com',
+                'last_http': PYOBJ,
                 'url': 's3://datareal-crawler-bodies/{md5(domain)}}/{md5(path)}/date.body',
                 'content': '<html>...' (MAY NOT BE HERE)
             }
@@ -53,6 +55,7 @@ def run(event, context) -> Dict[str, int]:
     parser: ClassVar[T]
     use_head: bool = False
     do_render: bool = False
+    status: dict = dict()
 
     xpaths: dict[str, str] = get_xpaths(
         table=environ['SCRAPE_XPATH'],
@@ -79,7 +82,7 @@ def run(event, context) -> Dict[str, int]:
         html = get_from_body(event['content'])
 
     else:
-        html = get_from_url(event['url'], do_render)
+        http_status, html = get_from_url(event['url'], do_render)
 
     if 'olx' in event['url']:
         use_head = True
@@ -108,10 +111,22 @@ def run(event, context) -> Dict[str, int]:
         s3_file = s3_object['file']
         s3_path = f'{s3_folder}/{s3_file}'
 
+    status.update({
+        'http': str(http_status),
+        'date': datetime.today().strftime("%Y-%m-%d"),
+    })
+    if event['action'] == 'UPDATE':
+        status.update({
+            'last': {
+                'http': str(event['last_http']['http']),
+                'date': event['last_http']['date']
+            }
+        })
+
     jobs_pv = dispatcher_price_verifier.build_finisher(execution_id=execution_id, action=event['action'], item=result, table=environ['CRAWLS_TABLE_NAME'])
     sent_pv = dispatcher_price_verifier.send_batch(jobs_pv)
 
-    jobs_fn = dispatcher_finisher.build_finisher(execution_id=execution_id, action=event['action'], item=result, table=environ['CRAWLS_TABLE_NAME'], bucket=s3_bucket, filename=s3_path, file_content=html)
+    jobs_fn = dispatcher_finisher.build_finisher(execution_id=execution_id, action=event['action'], item=result, http=status, table=environ['CRAWLS_TABLE_NAME'], bucket=s3_bucket, filename=s3_path, file_content=html)
     sent_fn = dispatcher_finisher.send_batch(jobs_fn)
 
     if sent_pv and sent_fn:
