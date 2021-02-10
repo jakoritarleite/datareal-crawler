@@ -46,8 +46,6 @@ fn request(py: Python, url: &str, method: &str, render: bool, user_agent: &str, 
         header.append("Sec-Fetch-User: ?1").unwrap();
         header.append(user_agent).unwrap();
 
-        println!("{:?}", header);
-
         handle.url(&request_url).unwrap();
         handle.follow_location(true).unwrap();
         handle.http_headers(header).unwrap();
