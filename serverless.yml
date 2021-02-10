@@ -1,8 +1,9 @@
 service: datareal-crawler
 
-frameworkVersion: ^2.20.1
+frameworkVersion: ^2.23.0
 
 plugins:
+  - serverless-prune-plugin
   - serverless-step-functions
   - serverless-pseudo-parameters
   - serverless-python-requirements
@@ -11,6 +12,7 @@ package:
   exclude:
     - dist/**
     - src/**
+    - node_modules/**
     - __pycache__/**
 
 provider:
@@ -25,6 +27,7 @@ provider:
     CRAWLS_XPATH: ${self:custom.crawlsXpathTableName}
     SCRAPE_XPATH: ${self:custom.scrapeXpathTableName}
     PRICE_VARIATION: ${self:custom.priceVariationTableName}
+    CHECKER_ARN: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-checker"
     CRAWLS_ARN: ${self:resources.Outputs.CrawlsStateMachine.Value}
     DISPATCHER_ARN: ${self:resources.Outputs.DispatcherStateMachine.Value}
     VERIFIER_ARN: ${self:resources.Outputs.VerifierStateMachine.Value}
@@ -36,6 +39,7 @@ provider:
   iamRoleStatements:
     - Effect: Allow
       Action:
+        - dynamodb:Scan
         - dynamodb:Query
         - dynamodb:PutItem
         - dynamodb:UpdateItem
@@ -100,10 +104,15 @@ provider:
         - ${self:custom.ScrapeStateMachineArn}
         - ${self:custom.PriceVerifierStateMachineArn}
         - ${self:custom.FinisherStateMachineArn}
+        - "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-checker"
 
 custom:
+  prune:
+    automatic: true
+    number: 3
   pythonRequirements:
     dockerizePip: false
+    slim: true
   propertiesTableName: ${self:service}-${self:provider.stage}-properties
   propertiesTableArn:
     Fn::Join:
@@ -152,6 +161,9 @@ custom:
     Fn::GetAtt: [FinisherStateMachine, Arn]
 
 functions:
+  checker:
+    handler: functions/online_checker.run
+    timeout: 600
   daily:
     handler: functions/daily.run
     timeout: 100
