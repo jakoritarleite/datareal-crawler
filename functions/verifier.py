@@ -96,7 +96,8 @@ def run(event, context) -> Dict[str, str]:
                 'scrapeId': dynamo_object[0]['id'],
                 'url': dynamo_object[0]['url'],
                 'last_http': dynamo_object[0]['status'],
-                'action': 'UPDATE'
+                'action': 'UPDATE',
+                'render': str(do_render).lower()
             })
 
         else:

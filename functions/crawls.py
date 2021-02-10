@@ -43,7 +43,7 @@ def run(event, context) -> Dict[str, str]:
     if 'render' in event and event['render'].lower() == 'true':
         do_render = True
 
-    html: bytes = get_from_url(event['url'], do_render)
+    status_code, html = get_from_url(event['url'], do_render)
 
     xpaths: dict[str, str] = get_xpaths(
         table=environ['CRAWLS_XPATH'],
@@ -69,7 +69,7 @@ def run(event, context) -> Dict[str, str]:
         execution_id=execution_id
     )
 
-    dispatcher_job = dispatcher.build_dispatcher(urls, next_page, xpaths['parser_arguments_wait'], xpaths['parser_arguments_wait_time'])
+    dispatcher_job = dispatcher.build_dispatcher(urls, next_page, xpaths['parser_arguments_wait'], xpaths['parser_arguments_wait_time'], do_render=do_render)
     dispatcher_response = dispatcher.send_batch(dispatcher_job)
 
     if dispatcher_response:
