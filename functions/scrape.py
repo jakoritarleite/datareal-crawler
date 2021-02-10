@@ -65,7 +65,7 @@ def run(event, context) -> Dict[str, int]:
     if 'render' in event and event['render'].lower() == 'true':
         do_render = True
 
-    elif 'option_use_render' in xpaths and xpaths['option_use_render'].lower() == 'true':
+    if 'options_use_render' in xpaths and xpaths['options_use_render'].lower() == 'true':
         do_render = True
 
     dispatcher_price_verifier: ClassVar[Dispatcher] = Dispatcher(
