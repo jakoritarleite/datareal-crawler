@@ -1,0 +1,1 @@
+from lib.images.process import resize_image
