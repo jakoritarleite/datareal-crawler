@@ -27,6 +27,7 @@ provider:
     CRAWLS_XPATH: ${self:custom.crawlsXpathTableName}
     SCRAPE_XPATH: ${self:custom.scrapeXpathTableName}
     PRICE_VARIATION: ${self:custom.priceVariationTableName}
+    IMG_DOWNLOADER_ARN: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-img_downloader"
     CHECKER_ARN: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-checker"
     CRAWLS_ARN: ${self:resources.Outputs.CrawlsStateMachine.Value}
     DISPATCHER_ARN: ${self:resources.Outputs.DispatcherStateMachine.Value}
@@ -53,6 +54,8 @@ provider:
       Resource:
         - "arn:aws:s3:::datareal-crawler-bodies/*"
         - "arn:aws:s3:::datareal-crawler-bodies"
+        - "arn:aws:s3:::datareal-crawler-images/*"
+        - "arn:aws:s3:::datareal-crawler-images"
     - Effect: Allow
       Action:
         - dynamodb:Query
@@ -105,6 +108,7 @@ provider:
         - ${self:custom.PriceVerifierStateMachineArn}
         - ${self:custom.FinisherStateMachineArn}
         - "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-checker"
+        - "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-img_downloader"
 
 custom:
   prune:
@@ -161,6 +165,12 @@ custom:
     Fn::GetAtt: [FinisherStateMachine, Arn]
 
 functions:
+  img_downloader:
+    handler: functions/download_images.run
+    timeout: 600
+    layers:
+      - "arn:aws:lambda:us-east-1:770693421928:layer:Klayers-python38-Pillow:8"
+      - "arn:aws:lambda:us-east-1:770693421928:layer:Klayers-python38-requests:15"
   checker:
     handler: functions/online_checker.run
     timeout: 600
