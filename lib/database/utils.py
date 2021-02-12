@@ -41,12 +41,12 @@ def update_item(table: str, query: dict = dict()) -> Response:
     try:
         response = dynamo_client.update_item(
             Key=query['Key'],
-            UpdateExpression=f"SET #sta=:sta",
+            UpdateExpression=f"SET #atr=:atr",
             ExpressionAttributeValues={
-                ':sta': query['Item']
+                ':atr': query['Item']
             },
             ExpressionAttributeNames={
-                '#sta': 'status'
+                '#atr': query['AttributeName']
             },
             ReturnValues='UPDATED_NEW'
         )
